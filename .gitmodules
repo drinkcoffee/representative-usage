@@ -4,3 +4,9 @@
 [submodule "lib/openzeppelin-contracts"]
 	path = lib/openzeppelin-contracts
 	url = https://github.com/openzeppelin/openzeppelin-contracts
+[submodule "lib/immutable-seaport-1.5.0+im1.3"]
+	path = lib/immutable-seaport-1.5.0+im1.3
+	url = https://github.com/immutable/seaport
+[submodule "lib/immutable-seaport-core-1.5.0+im1"]
+	path = lib/immutable-seaport-core-1.5.0+im1
+	url = https://github.com/immutable/seaport-core
