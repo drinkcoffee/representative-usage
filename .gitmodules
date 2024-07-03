@@ -16,3 +16,12 @@
 [submodule "lib/axelar-gmp-sdk-solidity"]
 	path = lib/axelar-gmp-sdk-solidity
 	url = https://github.com/axelarnetwork/axelar-gmp-sdk-solidity
+[submodule "lib/solidity-bits"]
+	path = lib/solidity-bits
+	url = https://github.com/estarriolvetch/solidity-bits
+[submodule "lib/solidity-bytes-utils"]
+	path = lib/solidity-bytes-utils
+	url = https://github.com/GNSPS/solidity-bytes-utils
+[submodule "lib/openzeppelin-contracts-upgradeable-5.0.2"]
+	path = lib/openzeppelin-contracts-upgradeable-5.0.2
+	url = https://github.com/openzeppelin/openzeppelin-contracts-upgradeable
