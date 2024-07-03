@@ -13,3 +13,6 @@
 [submodule "lib/openzeppelin-contracts-upgradeable-4.9.3"]
 	path = lib/openzeppelin-contracts-upgradeable-4.9.3
 	url = https://github.com/openzeppelin/openzeppelin-contracts-upgradeable
+[submodule "lib/axelar-gmp-sdk-solidity"]
+	path = lib/axelar-gmp-sdk-solidity
+	url = https://github.com/axelarnetwork/axelar-gmp-sdk-solidity
