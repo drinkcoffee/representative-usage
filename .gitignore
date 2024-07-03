@@ -12,3 +12,25 @@ docs/
 
 # Dotenv file
 .env
+
+
+node_modules
+coverage
+coverage.json
+typechain
+typechain-types
+node.json
+.idea/
+
+# Hardhat files
+cache
+artifacts
+
+# Build files
+dist/
+
+# Forge files
+foundry-out/
+
+# Apple Mac files
+.DS_Store
