@@ -2,7 +2,8 @@
 // SPDX-License-Identifier: Apache 2
 // solhint-disable not-rely-on-time
 
-pragma solidity ^0.8.19;
+// NOTE: changed from 0.8.19
+pragma solidity ^0.8.17;
 
 import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 import {Pausable} from "@openzeppelin/contracts/security/Pausable.sol";
