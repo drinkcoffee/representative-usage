@@ -22,6 +22,3 @@
 [submodule "lib/solidity-bytes-utils"]
 	path = lib/solidity-bytes-utils
 	url = https://github.com/GNSPS/solidity-bytes-utils
-[submodule "lib/openzeppelin-contracts-upgradeable-5.0.2"]
-	path = lib/openzeppelin-contracts-upgradeable-5.0.2
-	url = https://github.com/openzeppelin/openzeppelin-contracts-upgradeable
