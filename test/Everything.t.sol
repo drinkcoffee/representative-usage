@@ -29,7 +29,6 @@ contract CounterTest is Test {
 
     address public passportSigner;
     uint256 public passportSignerPKey;
-
     // Passport wallet nonces, based on the counter factual address.
     mapping (address => uint256) nonces;
 
@@ -43,6 +42,19 @@ contract CounterTest is Test {
 
     // Gem game
     GemGame public gemGame;
+
+    // ERC20 
+    ImmutableERC20MinterBurnerPermit public erc20;
+    address public minter;
+    string name;
+    string symbol;
+    uint256 maxSupply;
+    // Always transfer the same amount
+    uint256 public constant AMOUNT = 1;
+
+    function setUp() public virtual {
+
+
 
 
     function setUp() public {
@@ -71,6 +83,13 @@ contract CounterTest is Test {
         gemGame = new GemGame(admin, admin, admin);
     }
 
+    function installERC20() private {
+        minter = makeAddr("minterRole");
+        name = "HappyToken";
+        symbol = "HPY";
+        maxSupply = 1000000000;
+        erc20 = new ImmutableERC20MinterBurnerPermit(admin, minter, admin, name, symbol, maxSupply);
+    }
 
 
     // Run each function once. See README.md to see the proportion of transactions 
@@ -78,10 +97,12 @@ contract CounterTest is Test {
     function testAll() public {
         callGemGameFromUserEOA();
         callGemGameFromUsersPassport();
+        callMintERC20();
     }
 
 
     // Run each function separately and add some test code to ensure the function is running correctly.
+    event GemEarned(address indexed account, uint256 timestamp);
     function testCallGemGameFromUserEOA() public {
         vm.expectEmit(true, true, false, false);
         emit GemEarned(userEOA, block.timestamp);
@@ -92,8 +113,11 @@ contract CounterTest is Test {
         emit GemEarned(cfa(userEOA), block.timestamp);
         callGemGameFromUsersPassport();
     }
+    function testCallMintERC20() public {
+        callMintERC20();
+        assertEq(erc20.balanceOf(to), AMOUNT);
+    }
 
-    event GemEarned(address indexed account, uint256 timestamp);
 
 
     function callGemGameFromUserEOA() public {
@@ -105,6 +129,10 @@ contract CounterTest is Test {
         passportCall(userEOA, userEOAPKey, address(gemGame), abi.encodeWithSelector(GemGame.earnGem.selector));
     }
 
+    function callMintERC20() public {
+        vm.prank(minter);
+        erc20.mint(userEOA, AMOUNT);
+    }
 
 
 
