@@ -81,11 +81,25 @@ contract CounterTest is Test {
     }
 
 
+    // Run each function separately and add some test code to ensure the function is running correctly.
+    function testCallGemGameFromUserEOA() public {
+        vm.expectEmit(true, true, false, false);
+        emit GemEarned(userEOA, block.timestamp);
+        callGemGameFromUserEOA();
+    }
+    function testCallGemGameFromUsersPassport() public {
+        vm.expectEmit(true, true, false, false);
+        emit GemEarned(cfa(userEOA), block.timestamp);
+        callGemGameFromUsersPassport();
+    }
+
+    event GemEarned(address indexed account, uint256 timestamp);
+
+
     function callGemGameFromUserEOA() public {
         vm.prank(userEOA);
         gemGame.earnGem();
     }
-
 
     function callGemGameFromUsersPassport() public {
         passportCall(userEOA, userEOAPKey, address(gemGame), abi.encodeWithSelector(GemGame.earnGem.selector));
@@ -128,7 +142,6 @@ contract CounterTest is Test {
         IModuleCalls.Transaction[] memory txs = new IModuleCalls.Transaction[](1);
         txs[0] = transaction;
         bytes32 walletSalt = encodeImageHash(_userEOA, address(immutableSigner));
-
         address walletCounterFactualAddress = addressOf(address(walletFactory), address(startupWallet), walletSalt);
         uint256 nonce = getNextNonce(walletCounterFactualAddress);
         bytes32 hashToBeSigned = encodeMetaTransactionsData(walletCounterFactualAddress, txs, nonce);
@@ -160,6 +173,12 @@ contract CounterTest is Test {
         imageHash = keccak256(abi.encode(imageHash, uint256(WEIGHT), addr1));
         imageHash = keccak256(abi.encode(imageHash, uint256(WEIGHT), addr2));
         return imageHash;
+    }
+
+
+    function cfa(address _userEOA) private view returns (address) {
+        bytes32 walletSalt = encodeImageHash(_userEOA, address(immutableSigner));
+        return addressOf(address(walletFactory), address(startupWallet), walletSalt);
     }
 
 
