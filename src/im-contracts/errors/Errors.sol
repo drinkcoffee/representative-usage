@@ -1,5 +1,6 @@
 //SPDX-License-Identifier: Apache 2.0
-pragma solidity 0.8.19;
+// TODO changed version
+pragma solidity ^0.8;
 
 interface IImmutableERC721Errors {
     /// @dev Caller tried to mint an already burned token

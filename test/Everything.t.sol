@@ -15,6 +15,12 @@ import {IModuleCalls} from "../src/wallet/modules/commons/interfaces/IModuleCall
 // Gem Game
 import {GemGame} from "../src/im-contracts/games/gems/GemGame.sol";
 
+// ERC20
+import {ImmutableERC20MinterBurnerPermit} from "../src/im-contracts/token/erc20/preset/ImmutableERC20MinterBurnerPermit.sol";
+
+// Hunters on Chain
+import {Relayer} from "../src/hunters-on-chain/Relayer.sol";
+
 contract CounterTest is Test {
     // Have one admin account for everything: In the real deployment these are multisigs, with different
     // multisigs used for different adminstration groups.
@@ -40,6 +46,15 @@ contract CounterTest is Test {
     MainModuleDynamicAuth public mainModuleDynamicAuth;
     ImmutableSigner public immutableSigner;
 
+    // Accounts for use in testing.
+    uint256 public constant NUM_PLAYERS = 100;
+    uint256 public currentPlayer;
+    address[] players;
+
+    uint256 public constant NUM_PASSPORT_PLAYERS = 100;
+    uint256 public currentPassportPlayer;
+    address[] passportPlayersUserEOA;
+
     // Gem game
     GemGame public gemGame;
 
@@ -52,7 +67,10 @@ contract CounterTest is Test {
     // Always transfer the same amount
     uint256 public constant AMOUNT = 1;
 
-    function setUp() public virtual {
+    // Hunters on Chain
+    ImmutableERC20MinterBurnerPermit public bgemErc20;
+    address huntersOnChainMinter;
+    Relayer huntersOnChainRelayer;
 
 
 
@@ -63,8 +81,35 @@ contract CounterTest is Test {
         (passportSigner, passportSignerPKey) = makeAddrAndKey("passportSigner");
         (userEOA, userEOAPKey) = makeAddrAndKey("userEOA");
 
+        distributeNativeToken();
+
         installPassportWallet();
         installGemGame();
+        installERC20();
+
+        createPassportPlayers();
+
+        installHuntersOnChain();
+    }
+
+    function distributeNativeToken() private {
+        for (uint256 i = 0; i < NUM_PLAYERS; i++) {
+            bytes memory userStr = abi.encodePacked("player", i);
+            address user = makeAddr(string(userStr));
+            deal(user, 1000000);
+            players.push(user);
+        }
+
+        // Give a lot of value to this address, given EOA value transfer needs to be faked.
+        deal(address(this), 1000000000000);
+    }
+
+    function createPassportPlayers() private {
+        for (uint256 i = 0; i < NUM_PASSPORT_PLAYERS; i++) {
+            bytes memory userStr = abi.encodePacked("passport player", i);
+            address user = makeAddr(string(userStr));
+            passportPlayersUserEOA.push(user);
+        }
     }
 
     function installPassportWallet() private {
@@ -91,17 +136,53 @@ contract CounterTest is Test {
         erc20 = new ImmutableERC20MinterBurnerPermit(admin, minter, admin, name, symbol, maxSupply);
     }
 
+    function installHuntersOnChain() private {
+        huntersOnChainMinter = makeAddr("huntersOnChainMinter");
+        address[] memory whiteListedMinters = new address[](1);
+        whiteListedMinters[0] = huntersOnChainMinter;
+        huntersOnChainRelayer = new Relayer(whiteListedMinters);
+
+        name = "BitGem";
+        symbol = "BGEM";
+        maxSupply = 1000000000000000000;
+        bgemErc20 = new ImmutableERC20MinterBurnerPermit(admin, address(huntersOnChainRelayer), admin, name, symbol, maxSupply);
+    }
+
 
     // Run each function once. See README.md to see the proportion of transactions 
     // that each function should be executed.
     function testAll() public {
+        uint256 notRand = 0;
+        for (uint256 i = 0; i < 1000; i++) {
+            notRand = (notRand + 7) % 100;
+
+            if (notRand < 12) {
+                callValueTransferEOAtoEOA();
+            }
+
+        }
+
+
+
         callGemGameFromUserEOA();
         callGemGameFromUsersPassport();
         callMintERC20();
+        callHuntersOnChainBGemMintERC20();
     }
 
 
     // Run each function separately and add some test code to ensure the function is running correctly.
+    function testCallValueTransfertoEOA() public {
+        // This should be an EOA value transfer.
+        uint256 theNextPlayer = (currentPlayer + 1) % NUM_PLAYERS;
+        address playerTo = players[theNextPlayer];
+
+        uint256 balToBefore = playerTo.balance;
+        callValueTransferEOAtoEOA();
+        uint256 balToAfter = playerTo.balance;
+        assertEq(balToBefore + AMOUNT, balToAfter);
+    }
+
     event GemEarned(address indexed account, uint256 timestamp);
     function testCallGemGameFromUserEOA() public {
         vm.expectEmit(true, true, false, false);
@@ -115,11 +196,24 @@ contract CounterTest is Test {
     }
     function testCallMintERC20() public {
         callMintERC20();
-        assertEq(erc20.balanceOf(to), AMOUNT);
+        assertEq(erc20.balanceOf(userEOA), AMOUNT);
+    }
+
+    function testCallHuntersOnChainBGemMintERC20() public {
+        callHuntersOnChainBGemMintERC20();
     }
 
 
+    // In this test system, it is impossible to actually do an EOA value transfer.
+    function callValueTransferEOAtoEOA() public {
+        address playerFrom = players[currentPlayer];
+        currentPlayer = (currentPlayer + 1) % NUM_PLAYERS;
+        address playerTo = players[currentPlayer];
+        // Set 1 Wei from playerFrom to playerTo
+        payable(playerTo).transfer(AMOUNT);
+    }
 
+    // In this test system, it is impossible to actually do an EOA value transfer.
     function callGemGameFromUserEOA() public {
         vm.prank(userEOA);
         gemGame.earnGem();
@@ -134,6 +228,25 @@ contract CounterTest is Test {
         erc20.mint(userEOA, AMOUNT);
     }
 
+    function callHuntersOnChainBGemMintERC20() public {
+        currentPassportPlayer = (currentPassportPlayer + 1) % NUM_PASSPORT_PLAYERS;
+        address player = passportPlayersUserEOA[currentPassportPlayer];
+        address playerCfa = cfa(player);
+
+        bytes memory toCall = abi.encodeWithSelector(ImmutableERC20MinterBurnerPermit.mint.selector, playerCfa, uint256(25));
+        Relayer.ForwardRequest memory request0 = Relayer.ForwardRequest(
+            /* from   */ address(0),
+            /* to     */ address(bgemErc20),
+            /* value  */ 0,
+            /* gas    */ 1000000,
+            /* nonce  */ 0,
+            /* data   */ toCall
+        );
+        Relayer.ForwardRequest[] memory requests = new Relayer.ForwardRequest[](1);
+        requests[0] = request0;
+        vm.prank(huntersOnChainMinter);
+        huntersOnChainRelayer.execute(requests);
+    }
 
 
 
