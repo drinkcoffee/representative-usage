@@ -31,7 +31,7 @@ contract LibBytesImpl {
     return _data.readUint16(_index);
   }
 
-  function readBytes(bytes calldata _data, uint256 _index, uint256 _size) external view returns (bytes memory, uint256) {
+  function readBytes(bytes calldata _data, uint256 _index, uint256 _size) external pure returns (bytes memory, uint256) {
     return _data.readBytes(_index, _size);
   }
 }

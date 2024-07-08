@@ -206,7 +206,7 @@ contract CounterTest is Test {
 
     // In this test system, it is impossible to actually do an EOA value transfer.
     function callValueTransferEOAtoEOA() public {
-        address playerFrom = players[currentPlayer];
+        //address playerFrom = players[currentPlayer];
         currentPlayer = (currentPlayer + 1) % NUM_PLAYERS;
         address playerTo = players[currentPlayer];
         // Set 1 Wei from playerFrom to playerTo
@@ -296,7 +296,7 @@ contract CounterTest is Test {
 
     // Image hash can handle an aribtrary number of signers, with arbitrary weights and a threshold. 
     // Simplify this to the usage we have: two signers, threshold two, equal weight.
-    function encodeImageHash(address addrA, address addrB) private view returns(bytes32) {
+    function encodeImageHash(address addrA, address addrB) private pure returns(bytes32) {
         address addr1;
         address addr2;
         // Sort addresses so that we have a canonical form.
@@ -327,7 +327,7 @@ contract CounterTest is Test {
     // Yul wallet proxy with PROXY_getImplementation
     bytes public constant WALLET_CODE = hex'6054600f3d396034805130553df3fe63906111273d3560e01c14602b57363d3d373d3d3d3d369030545af43d82803e156027573d90f35b3d90fd5b30543d5260203df3';
 
-    function addressOf(address _factory, address _mainModule, bytes32 _imageHash) private view returns (address) {
+    function addressOf(address _factory, address _mainModule, bytes32 _imageHash) private pure returns (address) {
         bytes32 aHash = keccak256(
             abi.encodePacked(
                 bytes1(0xff), 
@@ -351,7 +351,7 @@ contract CounterTest is Test {
         return keccak256(abi.encodePacked("\x19\x01", block.chainid, _walletAddress, _digest));
     }
 
-    function walletMultiSign(address _userEOA, uint256 _userPKey, bytes32 _toBeSigned) private returns(bytes memory) {
+    function walletMultiSign(address _userEOA, uint256 _userPKey, bytes32 _toBeSigned) private view returns(bytes memory) {
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(passportSignerPKey, _toBeSigned);
         bytes memory encodedSigPassportSigner = abi.encodePacked(r, s, v, SIG_TYPE_EIP712, SIG_TYPE_WALLET_BYTES32);
 

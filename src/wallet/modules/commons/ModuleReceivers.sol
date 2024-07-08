@@ -18,7 +18,7 @@ contract ModuleReceivers is IERC1155Receiver, IERC721Receiver, ModuleERC165 {
     uint256,
     uint256,
     bytes calldata
-  ) external override returns (bytes4) {
+  ) external pure override returns (bytes4) {
     return ModuleReceivers.onERC1155Received.selector;
   }
 
@@ -32,7 +32,7 @@ contract ModuleReceivers is IERC1155Receiver, IERC721Receiver, ModuleERC165 {
     uint256[] calldata,
     uint256[] calldata,
     bytes calldata
-  ) external override returns (bytes4) {
+  ) external pure override returns (bytes4) {
     return ModuleReceivers.onERC1155BatchReceived.selector;
   }
 
@@ -40,7 +40,7 @@ contract ModuleReceivers is IERC1155Receiver, IERC721Receiver, ModuleERC165 {
    * @notice Handle the receipt of a single ERC721 token.
    * @return `bytes4(keccak256("onERC721Received(address,address,uint256,bytes)"))`
    */
-  function onERC721Received(address, address, uint256, bytes calldata) external override returns (bytes4) {
+  function onERC721Received(address, address, uint256, bytes calldata) external pure override returns (bytes4) {
     return ModuleReceivers.onERC721Received.selector;
   }
 

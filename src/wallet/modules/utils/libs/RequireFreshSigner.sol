@@ -11,7 +11,7 @@ contract RequireFreshSigner {
     REQUIRE_UTILS = _requireUtils;
   }
 
-  function requireFreshSigner(address _signer) external {
+  function requireFreshSigner(address _signer) external view {
     require(REQUIRE_UTILS.lastSignerUpdate(_signer) == 0, "RequireFreshSigner#requireFreshSigner: DUPLICATED_SIGNER");
   }
 }

@@ -31,7 +31,7 @@ contract MainModule is
 {
   constructor(
     address _factory
-  ) public ModuleAuthFixed(
+  ) ModuleAuthFixed(
     _factory
   ) { }
 

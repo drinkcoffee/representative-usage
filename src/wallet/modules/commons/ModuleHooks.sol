@@ -76,7 +76,7 @@ contract ModuleHooks is IERC1155Receiver, IERC721Receiver, IModuleHooks, ModuleE
     uint256,
     uint256,
     bytes calldata
-  ) external override returns (bytes4) {
+  ) external pure override returns (bytes4) {
     return ModuleHooks.onERC1155Received.selector;
   }
 
@@ -90,7 +90,7 @@ contract ModuleHooks is IERC1155Receiver, IERC721Receiver, IModuleHooks, ModuleE
     uint256[] calldata,
     uint256[] calldata,
     bytes calldata
-  ) external override returns (bytes4) {
+  ) external pure override returns (bytes4) {
     return ModuleHooks.onERC1155BatchReceived.selector;
   }
 
@@ -98,7 +98,7 @@ contract ModuleHooks is IERC1155Receiver, IERC721Receiver, IModuleHooks, ModuleE
    * @notice Handle the receipt of a single ERC721 token.
    * @return `bytes4(keccak256("onERC721Received(address,address,uint256,bytes)"))`
    */
-  function onERC721Received(address, address, uint256, bytes calldata) external override returns (bytes4) {
+  function onERC721Received(address, address, uint256, bytes calldata) external pure override returns (bytes4) {
     return ModuleHooks.onERC721Received.selector;
   }
 
