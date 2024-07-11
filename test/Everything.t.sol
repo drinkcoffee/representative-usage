@@ -237,6 +237,9 @@ contract EverythingTest is Test {
     function testHuntersOnChainBGemClaimPassport() public {
         callHuntersOnChainBGemClaimPassport(true);
     }
+    function testHuntersOnChainBGemClaimEOA() public {
+        callHuntersOnChainBGemClaimEOA();
+    }
 
 
 
@@ -312,6 +315,13 @@ contract EverythingTest is Test {
         requests[0] = request0;
         vm.prank(huntersOnChainMinter);
         huntersOnChainRelayer.execute(requests);
+    }
+
+    function callHuntersOnChainBGemClaimEOA() public {
+        address user = getEOAWithNativeTokens();
+        (BgemClaim.EIP712Claim memory claim, bytes memory sig) = createSignedBGemClaim(user);
+        vm.prank(user);
+        huntersOnChainClaim.claim(claim, sig);
     }
 
     function callHuntersOnChainBGemClaimPassport(bool _useNewPassport) public {
