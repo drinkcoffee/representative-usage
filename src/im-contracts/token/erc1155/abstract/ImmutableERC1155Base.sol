@@ -1,6 +1,6 @@
 // Copyright Immutable Pty Ltd 2018 - 2023
 // SPDX-License-Identifier: Apache 2.0
-pragma solidity 0.8.19;
+pragma solidity ^0.8;
 
 import {ERC1155, ERC1155Permit} from "../../../token/erc1155/abstract/ERC1155Permit.sol";
 
@@ -19,7 +19,7 @@ abstract contract ImmutableERC1155Base is OperatorAllowlistEnforced, ERC1155Perm
     string private _baseURI;
 
     /// @dev mapping of each token id supply
-    mapping(uint256 tokenId => uint256 totalSupply) private _totalSupply;
+    mapping(uint256 /* tokenId */ => uint256 /* totalSupply */) private _totalSupply;
 
     /**
      * @dev Grants `DEFAULT_ADMIN_ROLE` to the supplied `owner` address

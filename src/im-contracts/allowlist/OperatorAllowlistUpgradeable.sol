@@ -1,6 +1,6 @@
 // Copyright Immutable Pty Ltd 2018 - 2024
 // SPDX-License-Identifier: Apache 2.0
-pragma solidity 0.8.19;
+pragma solidity ^0.8;
 
 import {UUPSUpgradeable} from "openzeppelin-contracts-upgradeable-4.9.3/proxy/utils/UUPSUpgradeable.sol";
 import {AccessControlEnumerableUpgradeable} from "openzeppelin-contracts-upgradeable-4.9.3/access/AccessControlEnumerableUpgradeable.sol";
@@ -40,13 +40,13 @@ contract OperatorAllowlistUpgradeable is
     bytes32 public constant UPGRADE_ROLE = bytes32("UPGRADE_ROLE");
 
     /// @notice Mapping of Allowlisted addresses
-    mapping(address aContract => bool allowed) private addressAllowlist;
+    mapping(address /* aContract */ => bool /* allowed */) private addressAllowlist;
 
     /// @notice Mapping of Allowlisted implementation addresses
-    mapping(address impl => bool allowed) private addressImplementationAllowlist;
+    mapping(address /* impl */ => bool /* allowed */) private addressImplementationAllowlist;
 
     /// @notice Mapping of Allowlisted bytecodes
-    mapping(bytes32 bytecodeHash => bool allowed) private bytecodeAllowlist;
+    mapping(bytes32 /* bytecodeHash */ => bool /* allowed */) private bytecodeAllowlist;
 
     ///     =====   Initializer  =====
 

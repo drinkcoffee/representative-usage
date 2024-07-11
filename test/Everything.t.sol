@@ -3,6 +3,8 @@ pragma solidity ^0.8;
 
 import {Test, console} from "forge-std/Test.sol";
 
+import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
+
 // Passport Wallet
 import {Factory} from "../src/wallet/Factory.sol";
 import {MultiCallDeploy} from "../src/wallet/MultiCallDeploy.sol";
@@ -12,16 +14,23 @@ import {MainModuleDynamicAuth} from "../src/wallet/modules/MainModuleDynamicAuth
 import {ImmutableSigner} from "../src/wallet/signer/ImmutableSigner.sol";
 import {IModuleCalls} from "../src/wallet/modules/commons/interfaces/IModuleCalls.sol";
 
+// Immutable Contracts repo
+import {OperatorAllowlistUpgradeable} from "../src/im-contracts/allowlist/OperatorAllowlistUpgradeable.sol";
+import {ImmutableERC20MinterBurnerPermit} from "../src/im-contracts/token/erc20/preset/ImmutableERC20MinterBurnerPermit.sol";
+import {ImmutableERC1155} from '../src/im-contracts/token/erc1155/preset/ImmutableERC1155.sol';
+
 // Gem Game
 import {GemGame} from "../src/im-contracts/games/gems/GemGame.sol";
 
-// ERC20
-import {ImmutableERC20MinterBurnerPermit} from "../src/im-contracts/token/erc20/preset/ImmutableERC20MinterBurnerPermit.sol";
-
 // Hunters on Chain
 import {Relayer} from "../src/hunters-on-chain/Relayer.sol";
+import {Shards} from "../src/hunters-on-chain/Shards.sol";
 
-contract CounterTest is Test {
+contract EverythingTest is Test {
+    // This bytecode must precisely match that in src/contracts/Wallet.sol
+    // Yul wallet proxy with PROXY_getImplementation
+    bytes public constant WALLET_DEPLOY_CODE = hex'6054600f3d396034805130553df3fe63906111273d3560e01c14602b57363d3d373d3d3d3d369030545af43d82803e156027573d90f35b3d90fd5b30543d5260203df3';
+
     // Have one admin account for everything: In the real deployment these are multisigs, with different
     // multisigs used for different adminstration groups.
     address public admin;
@@ -37,6 +46,9 @@ contract CounterTest is Test {
     uint256 public passportSignerPKey;
     // Passport wallet nonces, based on the counter factual address.
     mapping (address => uint256) nonces;
+
+    // Royalty allowlist
+    OperatorAllowlistUpgradeable royaltyAllowlist;
 
     // Passport wallet.
     Factory public walletFactory;
@@ -71,6 +83,10 @@ contract CounterTest is Test {
     ImmutableERC20MinterBurnerPermit public bgemErc20;
     address huntersOnChainMinter;
     Relayer huntersOnChainRelayer;
+    Shards shards;
+
+    // Deployed to: https://explorer.immutable.com/address/0x5E850613Cb4b3010C166A79b2E0d5f6fAE265230
+    Shards huntersOnChainShards;
 
 
 
@@ -85,12 +101,17 @@ contract CounterTest is Test {
 
         installPassportWallet();
         installGemGame();
+        installRoyaltyAllowlist(); // Must be installed after Passport and Gem.
+
         installERC20();
 
         createPassportPlayers();
 
         installHuntersOnChain();
     }
+
+
+
 
     function distributeNativeToken() private {
         for (uint256 i = 0; i < NUM_PLAYERS; i++) {
@@ -112,6 +133,7 @@ contract CounterTest is Test {
         }
     }
 
+
     function installPassportWallet() private {
         multiCallDeploy = new MultiCallDeploy(admin, relayerEOA);
         walletFactory = new Factory(admin, address(multiCallDeploy));
@@ -126,6 +148,26 @@ contract CounterTest is Test {
 
     function installGemGame() private {
         gemGame = new GemGame(admin, admin, admin);
+    }
+
+    // NOTE: Passport and Gem game must be installed prior to calling this.
+    function installRoyaltyAllowlist() private {
+        OperatorAllowlistUpgradeable impl = new OperatorAllowlistUpgradeable();
+        bytes memory initData = abi.encodeWithSelector(
+            OperatorAllowlistUpgradeable.initialize.selector, admin, admin, admin
+        );
+        ERC1967Proxy proxy = new ERC1967Proxy(address(impl), initData);
+        royaltyAllowlist = OperatorAllowlistUpgradeable(address(proxy));
+
+        // Execute a call which will cause a user's passport wallet to be deployed
+        passportCall(userEOA, userEOAPKey, address(gemGame), abi.encodeWithSelector(GemGame.earnGem.selector));
+        address aWalletProxyContract = cfa(userEOA);
+
+        // Add all passport wallets to the royalty allowlist. That is, all contracts with the same 
+        // bytecode as the passport wallet proxy contract deployed in the gem call above.
+        vm.prank(admin);
+        royaltyAllowlist.addWalletToAllowlist(aWalletProxyContract);
+        // TODO add seaport to allow list
     }
 
     function installERC20() private {
@@ -146,6 +188,10 @@ contract CounterTest is Test {
         symbol = "BGEM";
         maxSupply = 1000000000000000000;
         bgemErc20 = new ImmutableERC20MinterBurnerPermit(admin, address(huntersOnChainRelayer), admin, name, symbol, maxSupply);
+
+        string memory baseURI = "https://api-imx.boomland.io/api/s/{id}";
+        string memory contractURI = "https://api-imx.boomland.io/api/v1/shard";
+        huntersOnChainShards = new Shards(admin, address(huntersOnChainRelayer), admin, admin, 1, baseURI, contractURI, address(royaltyAllowlist));
     }
 
 
@@ -168,6 +214,7 @@ contract CounterTest is Test {
         callGemGameFromUsersPassport();
         callMintERC20();
         callHuntersOnChainBGemMintERC20();
+        callShardsERC1155SafeMintBatch();
     }
 
 
@@ -202,6 +249,10 @@ contract CounterTest is Test {
     function testCallHuntersOnChainBGemMintERC20() public {
         callHuntersOnChainBGemMintERC20();
     }
+    function testCallShardsERC1155SafeMintBatch() public {
+        callShardsERC1155SafeMintBatch();
+    }
+
 
 
     // In this test system, it is impossible to actually do an EOA value transfer.
@@ -248,7 +299,36 @@ contract CounterTest is Test {
         huntersOnChainRelayer.execute(requests);
     }
 
+    function callShardsERC1155SafeMintBatch() public {
+        currentPassportPlayer = (currentPassportPlayer + 1) % NUM_PASSPORT_PLAYERS;
+        address player = passportPlayersUserEOA[currentPassportPlayer];
+        address playerCfa = cfa(player);
 
+        // safeMintBatch
+        // address to: The address that will receive the minted tokens
+        // uint256[] calldata ids: The ids of the tokens to mint
+        // uint256[] calldata values: The amounts of tokens to mint
+        // bytes memory data: Additional data
+        // Using values from: https://explorer.immutable.com/tx/0x835c193db1a4893a291e92d87459f8b22e60a43da4ad7feaaa88d8983d4173c4?tab=token_transfers
+        uint256[] memory ids = new uint256[](1);
+        ids[0] = 61;
+        uint256[] memory values = new uint256[](1);
+        values[0] = 5;
+        bytes memory data = "";
+        bytes memory toCall = abi.encodeWithSelector(ImmutableERC1155.safeMintBatch.selector, playerCfa, ids, values, data);
+        Relayer.ForwardRequest memory request0 = Relayer.ForwardRequest(
+            /* from   */ address(0),
+            /* to     */ address(shards),
+            /* value  */ 0,
+            /* gas    */ 1000000,
+            /* nonce  */ 0,
+            /* data   */ toCall
+        );
+        Relayer.ForwardRequest[] memory requests = new Relayer.ForwardRequest[](1);
+        requests[0] = request0;
+        vm.prank(huntersOnChainMinter);
+        huntersOnChainRelayer.execute(requests);
+    }
 
 
 
@@ -323,17 +403,13 @@ contract CounterTest is Test {
     }
 
 
-    // This bytecode must precisely match that in src/contracts/Wallet.sol
-    // Yul wallet proxy with PROXY_getImplementation
-    bytes public constant WALLET_CODE = hex'6054600f3d396034805130553df3fe63906111273d3560e01c14602b57363d3d373d3d3d3d369030545af43d82803e156027573d90f35b3d90fd5b30543d5260203df3';
-
     function addressOf(address _factory, address _mainModule, bytes32 _imageHash) private pure returns (address) {
         bytes32 aHash = keccak256(
             abi.encodePacked(
                 bytes1(0xff), 
                 _factory, 
                 _imageHash, 
-                keccak256(abi.encodePacked(WALLET_CODE, uint256(uint160(_mainModule))))));
+                keccak256(abi.encodePacked(WALLET_DEPLOY_CODE, uint256(uint160(_mainModule))))));
         return address(uint160(uint256(aHash)));
     }
 
