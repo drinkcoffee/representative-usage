@@ -3,7 +3,11 @@ pragma solidity ^0.8;
 
 import {Test, console} from "forge-std/Test.sol";
 
+// Open Zeppelin contracts
 import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
+// Slightly hacked Open Zeppelin contracts
+import {EIP712WithChanges} from "./EIP712WithChanges.sol";
+
 
 // Passport Wallet
 import {Factory} from "../src/wallet/Factory.sol";
@@ -25,6 +29,7 @@ import {GemGame} from "../src/im-contracts/games/gems/GemGame.sol";
 // Hunters on Chain
 import {Relayer} from "../src/hunters-on-chain/Relayer.sol";
 import {Shards} from "../src/hunters-on-chain/Shards.sol";
+import {BgemClaim, IBgem} from "../src/hunters-on-chain/Claim.sol";
 
 contract EverythingTest is Test {
     // This bytecode must precisely match that in src/contracts/Wallet.sol
@@ -71,10 +76,13 @@ contract EverythingTest is Test {
     ImmutableERC20MinterBurnerPermit public bgemErc20;
     address huntersOnChainMinter;
     Relayer huntersOnChainRelayer;
-    Shards shards;
-
     // Deployed to: https://explorer.immutable.com/address/0x5E850613Cb4b3010C166A79b2E0d5f6fAE265230
     Shards huntersOnChainShards;
+    address huntersOnChainOffchainSigner; // Used to verify off-chain signing requests for claiming BGems
+    uint256 huntersOnChainOffchainSignerPKey; // Used to sign off-chain signing requests for claiming BGems
+    BgemClaim huntersOnChainClaim;
+    mapping(address => uint256) bgemClaimNonces;
+    EIP712WithChanges huntersOnChainEIP712;
 
 
 
@@ -154,12 +162,20 @@ contract EverythingTest is Test {
 
         name = "BitGem";
         symbol = "BGEM";
-        maxSupply = 1000000000000000000;
+        maxSupply = 1000000000000000000 ether;
         bgemErc20 = new ImmutableERC20MinterBurnerPermit(admin, address(huntersOnChainRelayer), admin, name, symbol, maxSupply);
+        vm.prank(admin);
+        bgemErc20.grantMinterRole(huntersOnChainMinter);
 
         string memory baseURI = "https://api-imx.boomland.io/api/s/{id}";
         string memory contractURI = "https://api-imx.boomland.io/api/v1/shard";
         huntersOnChainShards = new Shards(admin, address(huntersOnChainRelayer), admin, admin, 1, baseURI, contractURI, address(royaltyAllowlist));
+
+        (huntersOnChainOffchainSigner, huntersOnChainOffchainSignerPKey) = makeAddrAndKey("huntersOnChainOffchainSigner");
+        huntersOnChainClaim = new BgemClaim(admin, IBgem(address(bgemErc20)), huntersOnChainOffchainSigner);
+        huntersOnChainEIP712 = new EIP712WithChanges("Boomland Claim", "1", address(huntersOnChainClaim));
+        vm.prank(huntersOnChainMinter);
+        bgemErc20.mint(address(huntersOnChainClaim), 1000000 ether);
     }
 
 
@@ -217,6 +233,9 @@ contract EverythingTest is Test {
     function testCallShardsERC1155SafeMintBatch() public {
         callShardsERC1155SafeMintBatch(true);
         callShardsERC1155SafeMintBatch(false);
+    }
+    function testHuntersOnChainBGemClaimPassport() public {
+        callHuntersOnChainBGemClaimPassport(true);
     }
 
 
@@ -283,7 +302,7 @@ contract EverythingTest is Test {
         bytes memory toCall = abi.encodeWithSelector(ImmutableERC1155.safeMintBatch.selector, playerCfa, ids, values, data);
         Relayer.ForwardRequest memory request0 = Relayer.ForwardRequest(
             /* from   */ address(0),
-            /* to     */ address(shards),
+            /* to     */ address(huntersOnChainShards),
             /* value  */ 0,
             /* gas    */ 1000000,
             /* nonce  */ 0,
@@ -294,6 +313,53 @@ contract EverythingTest is Test {
         vm.prank(huntersOnChainMinter);
         huntersOnChainRelayer.execute(requests);
     }
+
+    function callHuntersOnChainBGemClaimPassport(bool _useNewPassport) public {
+        (address playerMagic, uint256 playerMagicPKey) = _useNewPassport ? getNewPassportMagic() : getDeployedPassportMagic();
+        address playerCfa = cfa(playerMagic);
+        (BgemClaim.EIP712Claim memory claim, bytes memory sig) = createSignedBGemClaim(playerCfa);
+        passportCall(playerMagic, playerMagicPKey, address(huntersOnChainClaim), 
+            abi.encodeWithSelector(BgemClaim.claim.selector, claim, sig));
+    }
+
+
+    bytes32 constant EIP712_CLAIM_TYPEHASH = keccak256(
+        "EIP712Claim(uint256 amount,address wallet,uint48 gameId,uint256 nonce)"
+    );
+
+    function createSignedBGemClaim(address _wallet) private returns(BgemClaim.EIP712Claim memory, bytes memory) {
+        uint256 nonce = bgemClaimNonces[_wallet];
+        bgemClaimNonces[_wallet] = nonce + 1;
+        BgemClaim.EIP712Claim memory claim = createBGemClaim(_wallet, nonce);
+
+        bytes32 structHash = huntersOnChainEIP712._hashTypedDataV4(
+            keccak256(
+                abi.encode(
+                    EIP712_CLAIM_TYPEHASH,
+                    claim.amount,
+                    claim.wallet,
+                    claim.gameId,
+                    claim.nonce
+                )
+            )
+        );
+
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(huntersOnChainOffchainSignerPKey, structHash);
+        bytes memory encodedSig = abi.encodePacked(r, s, v);
+        return (claim, encodedSig);
+    }
+
+    function createBGemClaim(address _wallet, uint256 _nonce) private pure returns(BgemClaim.EIP712Claim memory) {
+        BgemClaim.EIP712Claim memory claim = BgemClaim.EIP712Claim(
+            /* amount */    10000000000000000000,
+            /* wallet */    _wallet,
+            /* gameId */    1,
+            /* nonce */     _nonce
+        );
+        return claim;
+
+    }
+
 
 
     // ***************************************************
