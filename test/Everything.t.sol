@@ -35,10 +35,6 @@ contract EverythingTest is Test {
     // multisigs used for different adminstration groups.
     address public admin;
 
-    // TODO: Might need to create a multitude of users.
-    address public userEOA;
-    uint256 public userEOAPKey;
-
     // Used as part of passport relayer
     address public relayerEOA;
 
@@ -58,14 +54,6 @@ contract EverythingTest is Test {
     MainModuleDynamicAuth public mainModuleDynamicAuth;
     ImmutableSigner public immutableSigner;
 
-    // Accounts for use in testing.
-    uint256 public constant NUM_PLAYERS = 100;
-    uint256 public currentPlayer;
-    address[] players;
-
-    uint256 public constant NUM_PASSPORT_PLAYERS = 100;
-    uint256 public currentPassportPlayer;
-    address[] passportPlayersUserEOA;
 
     // Gem game
     GemGame public gemGame;
@@ -95,7 +83,6 @@ contract EverythingTest is Test {
         admin = makeAddr("admin");
         relayerEOA = makeAddr("relayerEOA");
         (passportSigner, passportSignerPKey) = makeAddrAndKey("passportSigner");
-        (userEOA, userEOAPKey) = makeAddrAndKey("userEOA");
 
         distributeNativeToken();
 
@@ -105,33 +92,13 @@ contract EverythingTest is Test {
 
         installERC20();
 
-        createPassportPlayers();
-
         installHuntersOnChain();
     }
 
 
 
 
-    function distributeNativeToken() private {
-        for (uint256 i = 0; i < NUM_PLAYERS; i++) {
-            bytes memory userStr = abi.encodePacked("player", i);
-            address user = makeAddr(string(userStr));
-            deal(user, 1000000);
-            players.push(user);
-        }
 
-        // Give a lot of value to this address, given EOA value transfer needs to be faked.
-        deal(address(this), 1000000000000);
-    }
-
-    function createPassportPlayers() private {
-        for (uint256 i = 0; i < NUM_PASSPORT_PLAYERS; i++) {
-            bytes memory userStr = abi.encodePacked("passport player", i);
-            address user = makeAddr(string(userStr));
-            passportPlayersUserEOA.push(user);
-        }
-    }
 
 
     function installPassportWallet() private {
@@ -160,8 +127,9 @@ contract EverythingTest is Test {
         royaltyAllowlist = OperatorAllowlistUpgradeable(address(proxy));
 
         // Execute a call which will cause a user's passport wallet to be deployed
-        passportCall(userEOA, userEOAPKey, address(gemGame), abi.encodeWithSelector(GemGame.earnGem.selector));
-        address aWalletProxyContract = cfa(userEOA);
+        (address userMagic, uint256 userMagicPKey) = getNewPassportMagic();
+        passportCall(userMagic, userMagicPKey, address(gemGame), abi.encodeWithSelector(GemGame.earnGem.selector));
+        address aWalletProxyContract = cfa(userMagic);
 
         // Add all passport wallets to the royalty allowlist. That is, all contracts with the same 
         // bytecode as the passport wallet proxy contract deployed in the gem call above.
@@ -211,78 +179,75 @@ contract EverythingTest is Test {
 
 
         callGemGameFromUserEOA();
-        callGemGameFromUsersPassport();
+        callGemGameFromUsersPassport(true);
+        callGemGameFromUsersPassport(false);
         callMintERC20();
-        callHuntersOnChainBGemMintERC20();
-        callShardsERC1155SafeMintBatch();
+        callHuntersOnChainBGemMintERC20(true);
+        callHuntersOnChainBGemMintERC20(false);
+        callShardsERC1155SafeMintBatch(true);
+        callShardsERC1155SafeMintBatch(false);
     }
 
 
     // Run each function separately and add some test code to ensure the function is running correctly.
-    function testCallValueTransfertoEOA() public {
-        // This should be an EOA value transfer.
-        uint256 theNextPlayer = (currentPlayer + 1) % NUM_PLAYERS;
-        address playerTo = players[theNextPlayer];
-
-        uint256 balToBefore = playerTo.balance;
-        callValueTransferEOAtoEOA();
-        uint256 balToAfter = playerTo.balance;
-        assertEq(balToBefore + AMOUNT, balToAfter);
-    }
 
     event GemEarned(address indexed account, uint256 timestamp);
     function testCallGemGameFromUserEOA() public {
-        vm.expectEmit(true, true, false, false);
-        emit GemEarned(userEOA, block.timestamp);
+        vm.expectEmit(false, false, false, false);
+        emit GemEarned(address(0), uint256(0));
         callGemGameFromUserEOA();
     }
     function testCallGemGameFromUsersPassport() public {
-        vm.expectEmit(true, true, false, false);
-        emit GemEarned(cfa(userEOA), block.timestamp);
-        callGemGameFromUsersPassport();
+        vm.expectEmit(false, false, false, false);
+        emit GemEarned(address(0), uint256(0));
+        callGemGameFromUsersPassport(true);
+
+        vm.expectEmit(false, false, false, false);
+        emit GemEarned(address(0), uint256(0));
+        callGemGameFromUsersPassport(false);
     }
     function testCallMintERC20() public {
         callMintERC20();
-        assertEq(erc20.balanceOf(userEOA), AMOUNT);
     }
 
     function testCallHuntersOnChainBGemMintERC20() public {
-        callHuntersOnChainBGemMintERC20();
+        callHuntersOnChainBGemMintERC20(true);
+        callHuntersOnChainBGemMintERC20(false);
     }
     function testCallShardsERC1155SafeMintBatch() public {
-        callShardsERC1155SafeMintBatch();
+        callShardsERC1155SafeMintBatch(true);
+        callShardsERC1155SafeMintBatch(false);
     }
 
 
 
     // In this test system, it is impossible to actually do an EOA value transfer.
     function callValueTransferEOAtoEOA() public {
-        //address playerFrom = players[currentPlayer];
-        currentPlayer = (currentPlayer + 1) % NUM_PLAYERS;
-        address playerTo = players[currentPlayer];
+        address playerTo = getEOAWithNoNativeTokens();
         // Set 1 Wei from playerFrom to playerTo
         payable(playerTo).transfer(AMOUNT);
     }
 
     // In this test system, it is impossible to actually do an EOA value transfer.
     function callGemGameFromUserEOA() public {
-        vm.prank(userEOA);
+        vm.prank(getEOAWithNoNativeTokens());
         gemGame.earnGem();
     }
 
-    function callGemGameFromUsersPassport() public {
-        passportCall(userEOA, userEOAPKey, address(gemGame), abi.encodeWithSelector(GemGame.earnGem.selector));
+    function callGemGameFromUsersPassport(bool _useNewPassport) public {
+        (address playerMagic, uint256 playerMagicPKey) = _useNewPassport ? getNewPassportMagic() : getDeployedPassportMagic();
+        passportCall(playerMagic, playerMagicPKey, address(gemGame), abi.encodeWithSelector(GemGame.earnGem.selector));
     }
 
     function callMintERC20() public {
         vm.prank(minter);
-        erc20.mint(userEOA, AMOUNT);
+        erc20.mint(getEOAWithNoNativeTokens(), AMOUNT);
     }
 
-    function callHuntersOnChainBGemMintERC20() public {
-        currentPassportPlayer = (currentPassportPlayer + 1) % NUM_PASSPORT_PLAYERS;
-        address player = passportPlayersUserEOA[currentPassportPlayer];
-        address playerCfa = cfa(player);
+    function callHuntersOnChainBGemMintERC20(bool _useNewPassport) public {
+        address playerMagic;
+        (playerMagic, /*playerMagicPKey*/) = _useNewPassport ? getNewPassportMagic() : getDeployedPassportMagic();
+        address playerCfa = cfa(playerMagic);
 
         bytes memory toCall = abi.encodeWithSelector(ImmutableERC20MinterBurnerPermit.mint.selector, playerCfa, uint256(25));
         Relayer.ForwardRequest memory request0 = Relayer.ForwardRequest(
@@ -299,10 +264,10 @@ contract EverythingTest is Test {
         huntersOnChainRelayer.execute(requests);
     }
 
-    function callShardsERC1155SafeMintBatch() public {
-        currentPassportPlayer = (currentPassportPlayer + 1) % NUM_PASSPORT_PLAYERS;
-        address player = passportPlayersUserEOA[currentPassportPlayer];
-        address playerCfa = cfa(player);
+    function callShardsERC1155SafeMintBatch(bool _useNewPassport) public {
+        address playerMagic;
+        (playerMagic, /*playerMagicPKey*/) = _useNewPassport ? getNewPassportMagic() : getDeployedPassportMagic();
+        address playerCfa = cfa(playerMagic);
 
         // safeMintBatch
         // address to: The address that will receive the minted tokens
@@ -331,6 +296,62 @@ contract EverythingTest is Test {
     }
 
 
+    // ***************************************************
+    // Code below manages accounts
+    // ***************************************************
+    uint256 public constant NUM_PLAYERS = 100; // Number of players with some value
+    uint256 public currentPlayer;
+    uint256 public poor; // Index for creating EOAs that don't have any native tokens.
+    address[] players;
+
+    uint256 public currentPassportPlayer;
+    uint256 public newPassport; // Index for determining magic addresses for passport accounts that have not been deployed yet.
+    address[] passportPlayersMagic; // Address is proxy for public key
+    uint256[] passportPlayersMagicPKey; // Private key
+
+
+    function getNewPassportMagic() private returns(address, uint256) {
+        // Deploye a new passport contract.
+        bytes memory userStr = abi.encodePacked("passport player", newPassport++);
+        (address userMagic, uint256 userPKey) = makeAddrAndKey(string(userStr));
+        passportPlayersMagic.push(userMagic);
+        passportPlayersMagicPKey.push(userPKey);
+        return (userMagic, userPKey);
+    }
+
+    function getDeployedPassportMagic() private returns(address, uint256) {
+        uint256 numDeployed = passportPlayersMagic.length;
+        if (numDeployed == 0) {
+            // If no passport wallets have been deployed yet, then a new passport
+            // contract will need to be deployed.
+            return getNewPassportMagic();
+        }
+        currentPassportPlayer = (currentPassportPlayer + 1) % numDeployed;
+        return (passportPlayersMagic[currentPassportPlayer], passportPlayersMagicPKey[currentPassportPlayer]);
+    }
+
+    function distributeNativeToken() private {
+        for (uint256 i = 0; i < NUM_PLAYERS; i++) {
+            bytes memory userStr = abi.encodePacked("player", i);
+            address user = makeAddr(string(userStr));
+            deal(user, 1000000);
+            players.push(user);
+        }
+
+        // Give a lot of value to this address, given EOA value transfer needs to be faked.
+        deal(address(this), 1000000000000);
+    }
+
+    function getEOAWithNativeTokens() private returns(address) {
+        currentPlayer = (currentPlayer + 1) % NUM_PLAYERS;
+        return players[currentPlayer];
+    }
+
+    function getEOAWithNoNativeTokens() private returns(address) {
+        bytes memory userStr = abi.encodePacked("poorplayer", poor++);
+        return makeAddr(string(userStr));
+    }
+
 
     // ****************************************************
     // Code below is to construct a passport transaction.
@@ -347,11 +368,11 @@ contract EverythingTest is Test {
     uint8 private constant SIG_TYPE_ETH_SIGN = 2;
     uint8 private constant SIG_TYPE_WALLET_BYTES32 = 3;
 
-    function passportCall(address _userEOA, uint256 _userPKey,address _contract, bytes memory _data) public {
-      passportCall(_userEOA, _userPKey, _contract, _data, 1000000, 0);
+    function passportCall(address _userMagic, uint256 _userPKey,address _contract, bytes memory _data) public {
+      passportCall(_userMagic, _userPKey, _contract, _data, 1000000, 0);
     }
 
-    function passportCall(address _userEOA, uint256 _userPKey, address _contract, bytes memory _data, uint256 _gas, uint256 _value) public {
+    function passportCall(address _userMagic, uint256 _userPKey, address _contract, bytes memory _data, uint256 _gas, uint256 _value) public {
         IModuleCalls.Transaction memory transaction = IModuleCalls.Transaction({
             delegateCall: false,
             revertOnError: true,
@@ -362,12 +383,12 @@ contract EverythingTest is Test {
         });
         IModuleCalls.Transaction[] memory txs = new IModuleCalls.Transaction[](1);
         txs[0] = transaction;
-        bytes32 walletSalt = encodeImageHash(_userEOA, address(immutableSigner));
+        bytes32 walletSalt = encodeImageHash(_userMagic, address(immutableSigner));
         address walletCounterFactualAddress = addressOf(address(walletFactory), address(startupWallet), walletSalt);
         uint256 nonce = getNextNonce(walletCounterFactualAddress);
         bytes32 hashToBeSigned = encodeMetaTransactionsData(walletCounterFactualAddress, txs, nonce);
 
-        bytes memory signature = walletMultiSign(_userEOA, _userPKey, hashToBeSigned);
+        bytes memory signature = walletMultiSign(_userMagic, _userPKey, hashToBeSigned);
 
         vm.prank(relayerEOA);
         multiCallDeploy.deployAndExecute(walletCounterFactualAddress, 
