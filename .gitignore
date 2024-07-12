@@ -34,3 +34,7 @@ foundry-out/
 
 # Apple Mac files
 .DS_Store
+
+# Directory for Forge script temporary file
+temp
+broadcast
