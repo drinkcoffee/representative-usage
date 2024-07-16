@@ -23,8 +23,12 @@ import {GemGame} from "../src/im-contracts/games/gems/GemGame.sol";
 import {Relayer} from "../src/hunters-on-chain/Relayer.sol";
 import {Shards} from "../src/hunters-on-chain/Shards.sol";
 import {BgemClaim, IBgem} from "../src/hunters-on-chain/Claim.sol";
+import {HuntersOnChainClaimGame} from "../src/hunters-on-chain/HuntersOnChainClaimGame.sol";
+import {Equipments} from "../src/hunters-on-chain/Equipments.sol";
+import {Artifacts} from "../src/hunters-on-chain/Artifacts.sol";
 
-
+// Guild of Guardians
+import {GuildOfGuardiansClaimGame} from "../src/guild-of-guardians/GuildOfGuardiansClaimGame.sol";
 
 //contract RunAll is Applications {
 contract RunAll is DeployAll {
@@ -144,6 +148,16 @@ contract RunAll is DeployAll {
         console.logString("Loaded bgemErc20 as");
         console.logAddress(address(bgemErc20));
 
+        vm.readLine(path); // Discard line: huntersOnChainEquipment deployed to address
+        huntersOnChainEquipments = Equipments(vm.parseAddress(vm.readLine(path)));
+        console.logString("Loaded huntersOnChainEquipment as");
+        console.logAddress(address(huntersOnChainEquipments));
+
+        vm.readLine(path); // Discard line: huntersOnChainArtifacts deployed to address
+        huntersOnChainArtifacts = Artifacts(vm.parseAddress(vm.readLine(path)));
+        console.logString("Loaded huntersOnChainArtifacts as");
+        console.logAddress(address(huntersOnChainArtifacts));
+
         vm.readLine(path); // Discard line: huntersOnChainShards deployed to address
         huntersOnChainShards = Shards(vm.parseAddress(vm.readLine(path)));
         console.logString("Loaded huntersOnChainShards as");
@@ -158,57 +172,153 @@ contract RunAll is DeployAll {
         huntersOnChainEIP712 = EIP712WithChanges(vm.parseAddress(vm.readLine(path)));
         console.logString("Loaded huntersOnChainEIP712 as");
         console.logAddress(address(huntersOnChainEIP712));
+
+        vm.readLine(path); // Discard line: huntersOnChainClaimGame deployed to address
+        huntersOnChainClaimGame = HuntersOnChainClaimGame(vm.parseAddress(vm.readLine(path)));
+        console.logString("Loaded huntersOnChainClaimGame as");
+        console.logAddress(address(huntersOnChainClaimGame));
     }
 
 
+    // Percentages to two decimal places of chain utilisation on Sunday July 14, 2024
+    // NOTE that the numbers are not consistent: the Passport numbers appear to be slightly inflated.
+    uint256 public constant P_PASSPORT_GEM_GAME_WITH_NEW_PASSPORT = 83;
+    uint256 public constant P_PASSPORT_GEM_GAME = 2627 - P_PASSPORT_GEM_GAME_WITH_NEW_PASSPORT;
+    uint256 public constant P_PASSPORT_HUNTERS_ON_CHAIN_CLAIM_GAME = 305;
+    uint256 public constant P_PASSPORT_HUNTERS_ON_CHAIN_RECIPE = 257;
+    uint256 public constant P_PASSPORT_HUNTERS_ON_CHAIN_BITGEM = 115;
+    uint256 public constant P_PASSPORT_GUILD_OF_GUARDIANS_CLAIM = 462;
+    uint256 public constant P_PASSPORT_SPACETREK_CLAIM = 92;
+    uint256 public constant P_PASSPORT_SPACENATION_COIN = 26;
+    uint256 public constant P_PASSPORT_SEAPORT = 38;
 
-    uint256 public constant PERCENT_ValueTransferEOAtoEOA = 12;
-    uint256 public constant PERCENT_GemGameFromUsersPassportNewPassport = 3;
-    uint256 public constant PERCENT_GemGameFromUsersPassportExistingPassport = 10;
-    uint256 public constant PERCENT_GemGameFromUserEOA = 20;
-    uint256 public constant PERCENT_HuntersOnChainBGemMintERC20NewPassport = 1;
-    uint256 public constant PERCENT_HuntersOnChainBGemMintERC20ExistingPassport = 1;
+    uint256 public constant P_EOA_HUNTERS_ON_CHAIN_BGEM_CLAIM = 1961;
+    uint256 public constant P_EOA_HUNTERS_ON_CHAIN_RELAYER_MINT = 1000; // Adds to 19.27, not sure of distribution
+    uint256 public constant P_EOA_HUNTERS_ON_CHAIN_RELAYER_SHARD_MINT = 927; // Adds to 19.27, not sure of distribution
+    uint256 public constant P_EOA_GEM_GAME = 1247;
+    uint256 public constant P_EOA_VALUE_TRANSFER = 1115;
+    uint256 public constant P_EOA_BABY_SHARK_UNIVERSE_PROXY = 213;
+    uint256 public constant P_EOA_BABY_SHARK_UNIVERSE = 44;
+    uint256 public constant P_EOA_BLACKPASS = 33;
 
-        // callShardsERC1155SafeMintBatch(true);
-        // callShardsERC1155SafeMintBatch(false);
-        // callHuntersOnChainBGemClaimPassport(true);
-        // callHuntersOnChainBGemClaimPassport(false);
+    // Once each hour, Hunters on Chain submits about a dozen big (20M gas) transactions
+    // in sequential blocks. Given a number range of 100,000, and a weighting of two, 
+    // each 50,000 runs through the loop below will call the sequence of fund calls.
+    uint256 public constant P_EOA_HUNTERS_ON_CHAIN_FUND = 2;
 
+    uint256 public constant T_PASSPORT_GEM_GAME_WITH_NEW_PASSPORT = P_PASSPORT_GEM_GAME_WITH_NEW_PASSPORT;
+    uint256 public constant T_PASSPORT_GEM_GAME = T_PASSPORT_GEM_GAME_WITH_NEW_PASSPORT + P_PASSPORT_GEM_GAME;
+    uint256 public constant T_PASSPORT_HUNTERS_ON_CHAIN_CLAIM_GAME = T_PASSPORT_GEM_GAME + P_PASSPORT_HUNTERS_ON_CHAIN_CLAIM_GAME;
+    uint256 public constant T_PASSPORT_HUNTERS_ON_CHAIN_RECIPE = T_PASSPORT_HUNTERS_ON_CHAIN_CLAIM_GAME + P_PASSPORT_HUNTERS_ON_CHAIN_RECIPE;
+    uint256 public constant T_PASSPORT_HUNTERS_ON_CHAIN_BITGEM = T_PASSPORT_HUNTERS_ON_CHAIN_RECIPE + P_PASSPORT_HUNTERS_ON_CHAIN_BITGEM;
+    uint256 public constant T_PASSPORT_GUILD_OF_GUARDIANS_CLAIM = T_PASSPORT_HUNTERS_ON_CHAIN_BITGEM + P_PASSPORT_GUILD_OF_GUARDIANS_CLAIM;
+    uint256 public constant T_PASSPORT_SPACETREK_CLAIM = T_PASSPORT_GUILD_OF_GUARDIANS_CLAIM + P_PASSPORT_SPACETREK_CLAIM;
+    uint256 public constant T_PASSPORT_SPACENATION_COIN = T_PASSPORT_SPACETREK_CLAIM + P_PASSPORT_SPACENATION_COIN;
+    uint256 public constant T_PASSPORT_SEAPORT = T_PASSPORT_SPACENATION_COIN + P_PASSPORT_SEAPORT;
+    uint256 public constant T_EOA_HUNTERS_ON_CHAIN_BGEM_CLAIM = T_PASSPORT_SEAPORT + P_EOA_HUNTERS_ON_CHAIN_BGEM_CLAIM;
+    uint256 public constant T_EOA_HUNTERS_ON_CHAIN_RELAYER_MINT = T_EOA_HUNTERS_ON_CHAIN_BGEM_CLAIM + P_EOA_HUNTERS_ON_CHAIN_RELAYER_MINT;
+    uint256 public constant T_EOA_HUNTERS_ON_CHAIN_RELAYER_SHARD_MINT = T_EOA_HUNTERS_ON_CHAIN_RELAYER_MINT + P_EOA_HUNTERS_ON_CHAIN_RELAYER_SHARD_MINT;
+    uint256 public constant T_EOA_GEM_GAME = T_EOA_HUNTERS_ON_CHAIN_RELAYER_SHARD_MINT + P_EOA_GEM_GAME;
+    uint256 public constant T_EOA_VALUE_TRANSFER = T_EOA_GEM_GAME + P_EOA_VALUE_TRANSFER;
+    uint256 public constant T_EOA_BABY_SHARK_UNIVERSE_PROXY = T_EOA_VALUE_TRANSFER + P_EOA_BABY_SHARK_UNIVERSE_PROXY;
+    uint256 public constant T_EOA_BABY_SHARK_UNIVERSE = T_EOA_BABY_SHARK_UNIVERSE_PROXY + P_EOA_BABY_SHARK_UNIVERSE;
+    uint256 public constant T_EOA_BLACKPASS = T_EOA_BABY_SHARK_UNIVERSE + P_EOA_BLACKPASS;
+    uint256 public constant T_EOA_HUNTERS_ON_CHAIN_FUND = T_EOA_BLACKPASS + P_EOA_HUNTERS_ON_CHAIN_FUND;
+    uint256 public constant TOTAL = T_EOA_HUNTERS_ON_CHAIN_FUND;
 
 
 
     function runAll() public {
-        uint256 valueTransferEOAtoEOA = PERCENT_ValueTransferEOAtoEOA;
-        uint256 gemGameFromUsersPassportNewPassport = valueTransferEOAtoEOA + PERCENT_GemGameFromUsersPassportNewPassport;
-        uint256 gemGameFromUsersPassportExistingPassport = gemGameFromUsersPassportNewPassport + PERCENT_GemGameFromUsersPassportExistingPassport;
+        // Uncomment the code below to check that the numbers are all increasing.
+        console.logUint(T_PASSPORT_GEM_GAME_WITH_NEW_PASSPORT);
+        console.logUint(T_PASSPORT_GEM_GAME);
+        console.logUint(T_PASSPORT_HUNTERS_ON_CHAIN_CLAIM_GAME);
+        console.logUint(T_PASSPORT_HUNTERS_ON_CHAIN_RECIPE);
+        console.logUint(T_PASSPORT_HUNTERS_ON_CHAIN_BITGEM);
+        console.logUint(T_PASSPORT_GUILD_OF_GUARDIANS_CLAIM);
+        console.logUint(T_PASSPORT_SPACETREK_CLAIM);
+        console.logUint(T_PASSPORT_SPACENATION_COIN);
+        console.logUint(T_PASSPORT_SEAPORT);
+        console.logUint(T_EOA_HUNTERS_ON_CHAIN_BGEM_CLAIM);
+        console.logUint(T_EOA_HUNTERS_ON_CHAIN_RELAYER_SHARD_MINT);
+        console.logUint(T_EOA_GEM_GAME);
+        console.logUint(T_EOA_VALUE_TRANSFER);
+        console.logUint(T_EOA_BABY_SHARK_UNIVERSE_PROXY);
+        console.logUint(T_EOA_BABY_SHARK_UNIVERSE);
+        console.logUint(T_EOA_BLACKPASS);
+        console.logUint(T_EOA_HUNTERS_ON_CHAIN_FUND);
 
 
 
-        uint256 notRand = 0;
         for (uint256 i = 0; i < 1000; i++) {
-            notRand = (notRand + 7) % 100;
+            uint256 drbg = getNextDrbgOutput();
 
-            if (notRand <= valueTransferEOAtoEOA) {
-                callValueTransferEOAtoEOA();
-            }
-            else if (notRand <= gemGameFromUsersPassportNewPassport) {
+            if (drbg < T_PASSPORT_GEM_GAME_WITH_NEW_PASSPORT) {
                 callGemGameFromUsersPassport(true);
             }
-            else if (notRand <= gemGameFromUsersPassportExistingPassport) {
+            else if (drbg < T_PASSPORT_GEM_GAME) {
                 callGemGameFromUsersPassport(false);
             }
-
-            
-
+            else if (drbg < T_PASSPORT_HUNTERS_ON_CHAIN_CLAIM_GAME) {
+                callHuntersOnChainClaimGamePassport(false);
+            }
+            else if (drbg < T_PASSPORT_HUNTERS_ON_CHAIN_RECIPE) {
+                console.log("TODO");
+            }
+            else if (drbg < T_PASSPORT_HUNTERS_ON_CHAIN_BITGEM) {
+                callHuntersOnChainBGemClaimPassport(false);
+            }
+            else if (drbg < T_PASSPORT_GUILD_OF_GUARDIANS_CLAIM) {
+                callGuildOfGuardiansClaimGamePassport(false);
+            }
+            else if (drbg < T_PASSPORT_SPACETREK_CLAIM) {
+                console.log("TODO");
+            }
+            else if (drbg < T_PASSPORT_SPACENATION_COIN) {
+                console.log("TODO");
+            }
+            else if (drbg < T_PASSPORT_SEAPORT) {
+                console.log("TODO");
+            }
+            else if (drbg < T_EOA_HUNTERS_ON_CHAIN_BGEM_CLAIM) {
+                callHuntersOnChainBGemClaimEOA();
+            }
+            else if (drbg < T_EOA_HUNTERS_ON_CHAIN_RELAYER_MINT) {
+                callHuntersOnChainBGemMintERC20(false);
+            }
+            else if (drbg < T_EOA_HUNTERS_ON_CHAIN_RELAYER_SHARD_MINT) {
+                callShardsERC1155SafeMintBatch(false);
+            }
+            else if (drbg < T_EOA_GEM_GAME) {
+                callGemGameFromUserEOA();
+            }
+            else if (drbg < T_EOA_VALUE_TRANSFER) {
+                callValueTransferEOAtoEOA();
+            }
+            else if (drbg < T_EOA_BABY_SHARK_UNIVERSE_PROXY) {
+                console.log("TODO");
+            }
+            else if (drbg < T_EOA_BABY_SHARK_UNIVERSE) {
+                console.log("TODO");
+            }
+            else if (drbg < T_EOA_BLACKPASS) {
+                console.log("TODO");
+            }
+            else if (drbg < T_EOA_HUNTERS_ON_CHAIN_FUND) {
+                console.log("TODO");
+            }
         }
-        callHuntersOnChainBGemMintERC20(true);
-        callHuntersOnChainBGemMintERC20(false);
-        callShardsERC1155SafeMintBatch(true);
-        callShardsERC1155SafeMintBatch(false);
-        callHuntersOnChainBGemClaimEOA();
-        callHuntersOnChainBGemClaimPassport(true);
-        callHuntersOnChainBGemClaimPassport(false);
     }
+
+    // Deterministic Random Sequence Generator.
+    uint256 drbgCounter = 0;
+    function getNextDrbgOutput() private returns (uint256) {
+        bytes32 hashOfCounter = keccak256(abi.encodePacked(drbgCounter++));
+        uint256 output = uint256(hashOfCounter) % TOTAL;
+        console.log("DRBG output: %i", output);
+        return output;
+    }
+
 
 
     function callValueTransferEOAtoEOA() public {
@@ -350,6 +460,20 @@ contract RunAll is DeployAll {
             /* nonce */     _nonce
         );
         return claim;
-
     }
+
+    function callHuntersOnChainClaimGamePassport(bool _useNewPassport) public {
+        console.logString("callHuntersOnChainClaimGamePassport");
+        (address playerMagic, uint256 playerMagicPKey) = _useNewPassport ? getNewPassportMagic() : getDeployedPassportMagic();
+        passportCall(playerMagic, playerMagicPKey, address(huntersOnChainClaimGame), 
+            abi.encodeWithSelector(HuntersOnChainClaimGame.claim.selector));
+    }
+
+    function callGuildOfGuardiansClaimGamePassport(bool _useNewPassport) public {
+        console.logString("callGuildOfGuardiansClaimGamePassport");
+        (address playerMagic, uint256 playerMagicPKey) = _useNewPassport ? getNewPassportMagic() : getDeployedPassportMagic();
+        passportCall(playerMagic, playerMagicPKey, address(guildOfGuardiansClaimGame), 
+            abi.encodeWithSelector(GuildOfGuardiansClaimGame.claim.selector));
+    }
+
 }

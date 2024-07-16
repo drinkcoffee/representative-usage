@@ -24,6 +24,12 @@ import {GemGame} from "../src/im-contracts/games/gems/GemGame.sol";
 import {Relayer} from "../src/hunters-on-chain/Relayer.sol";
 import {Shards} from "../src/hunters-on-chain/Shards.sol";
 import {BgemClaim, IBgem} from "../src/hunters-on-chain/Claim.sol";
+import {HuntersOnChainClaimGame} from "../src/hunters-on-chain/HuntersOnChainClaimGame.sol";
+import {Equipments} from "../src/hunters-on-chain/Equipments.sol";
+import {Artifacts} from "../src/hunters-on-chain/Artifacts.sol";
+
+// Guild of Guardians
+import {GuildOfGuardiansClaimGame} from "../src/guild-of-guardians/GuildOfGuardiansClaimGame.sol";
 
 contract Applications is ChainInfrastructure {
 
@@ -51,4 +57,10 @@ contract Applications is ChainInfrastructure {
     BgemClaim huntersOnChainClaim;
     mapping(address => uint256) bgemClaimNonces;
     EIP712WithChanges huntersOnChainEIP712;
+    HuntersOnChainClaimGame huntersOnChainClaimGame;
+    Equipments huntersOnChainEquipments;
+    Artifacts huntersOnChainArtifacts;
+
+    // Guild of Guardians
+    GuildOfGuardiansClaimGame guildOfGuardiansClaimGame;
 }

@@ -22,8 +22,12 @@ import {GemGame} from "../src/im-contracts/games/gems/GemGame.sol";
 import {Relayer} from "../src/hunters-on-chain/Relayer.sol";
 import {Shards} from "../src/hunters-on-chain/Shards.sol";
 import {BgemClaim, IBgem} from "../src/hunters-on-chain/Claim.sol";
+import {HuntersOnChainClaimGame} from "../src/hunters-on-chain/HuntersOnChainClaimGame.sol";
+import {Equipments} from "../src/hunters-on-chain/Equipments.sol";
+import {Artifacts} from "../src/hunters-on-chain/Artifacts.sol";
 
-
+// Guild of Guardians
+import {GuildOfGuardiansClaimGame} from "../src/guild-of-guardians/GuildOfGuardiansClaimGame.sol";
 
 contract DeployAll is Applications {
     function run() public virtual {
@@ -40,7 +44,12 @@ contract DeployAll is Applications {
 
         setUpAccounts(treasuryPKey, runName);
         distributeNativeTokenToGamePlayers();
-        deployContracts();
+
+        installPassportWallet();
+        installGemGame();
+        installRoyaltyAllowlist(); // Must be installed after Passport.
+        installHuntersOnChain();
+        installGuildOfGuardians();
 
         vm.closeFile(path);
     }
@@ -129,16 +138,6 @@ contract DeployAll is Applications {
         vm.writeLine(path, Strings.toHexString(huntersOnChainOffchainSignerPKey));
     }
 
-
-    function deployContracts() public {
-        installPassportWallet();
-        installGemGame();
-        installRoyaltyAllowlist(); // Must be installed after Passport.
-        // installERC20();
-        installHuntersOnChain();
-    }
-
-
     function installGemGame() private {
         vm.startBroadcast(deployerPKey);
         gemGame = new GemGame(admin, admin, admin);
@@ -146,14 +145,6 @@ contract DeployAll is Applications {
         vm.writeLine(path, Strings.toHexString(address(gemGame)));
         vm.stopBroadcast();
     }
-
-    // function installERC20() private {
-    //     minter = makeAddr("minterRole");
-    //     name = "HappyToken";
-    //     symbol = "HPY";
-    //     maxSupply = 1000000000;
-    //     erc20 = new ImmutableERC20MinterBurnerPermit(admin, minter, admin, name, symbol, maxSupply);
-    // }
 
     function installHuntersOnChain() private {
         address[] memory whiteListedMinters = new address[](1);
@@ -174,10 +165,26 @@ contract DeployAll is Applications {
         vm.writeLine(path, Strings.toHexString(address(bgemErc20)));
         vm.stopBroadcast();
 
-        string memory baseURI = "https://api-imx.boomland.io/api/s/{id}";
-        string memory contractURI = "https://api-imx.boomland.io/api/v1/shard";
+        string memory baseURIe = "https://api-imx.boomland.io/api/e/";
+        string memory contractURIe = "https://api-imx.boomland.io";
         vm.startBroadcast(deployerPKey);
-        huntersOnChainShards = new Shards(admin, address(huntersOnChainRelayer), admin, admin, 1, baseURI, contractURI, address(royaltyAllowlist));
+        huntersOnChainEquipments = new Equipments(admin, admin, admin, admin, 1000, baseURIe, contractURIe, address(royaltyAllowlist));
+        vm.writeLine(path, "huntersOnChainEquipments deployed to address");
+        vm.writeLine(path, Strings.toHexString(address(huntersOnChainEquipments)));
+        vm.stopBroadcast();
+
+        string memory baseURIa = "https://api-imx.boomland.io/api/s/";
+        string memory contractURIa = "https://api-imx.boomland.io";
+        vm.startBroadcast(deployerPKey);
+        huntersOnChainArtifacts = new Artifacts(admin, admin, admin, admin, 1000, baseURIa, contractURIa, address(royaltyAllowlist));
+        vm.writeLine(path, "huntersOnChainArtifacts deployed to address");
+        vm.writeLine(path, Strings.toHexString(address(huntersOnChainArtifacts)));
+        vm.stopBroadcast();
+
+        string memory baseURIs = "https://api-imx.boomland.io/api/s/{id}";
+        string memory contractURIs = "https://api-imx.boomland.io/api/v1/shard";
+        vm.startBroadcast(deployerPKey);
+        huntersOnChainShards = new Shards(admin, address(huntersOnChainRelayer), admin, admin, 1000, baseURIs, contractURIs, address(royaltyAllowlist));
         vm.writeLine(path, "huntersOnChainShards deployed to address");
         vm.writeLine(path, Strings.toHexString(address(huntersOnChainShards)));
         vm.stopBroadcast();
@@ -193,5 +200,21 @@ contract DeployAll is Applications {
         vm.writeLine(path, "huntersOnChainEIP712 deployed to address");
         vm.writeLine(path, Strings.toHexString(address(huntersOnChainEIP712)));
         vm.stopBroadcast();
+
+        vm.startBroadcast(deployerPKey);
+        huntersOnChainClaimGame = new HuntersOnChainClaimGame(admin, admin, admin);
+        vm.writeLine(path, "huntersOnChainClaimGame deployed to address");
+        vm.writeLine(path, Strings.toHexString(address(huntersOnChainClaimGame)));
+        vm.stopBroadcast();
     }
+
+
+    function installGuildOfGuardians() private {
+        vm.startBroadcast(deployerPKey);
+        guildOfGuardiansClaimGame = new GuildOfGuardiansClaimGame(admin, admin, admin);
+        vm.writeLine(path, "guildOfGuardiansClaimGame deployed to address");
+        vm.writeLine(path, Strings.toHexString(address(guildOfGuardiansClaimGame)));
+        vm.stopBroadcast();
+    }
+
 }
