@@ -181,21 +181,38 @@ contract ChainInfrastructure is Globals {
     uint8 private constant SIG_TYPE_ETH_SIGN = 2;
     uint8 private constant SIG_TYPE_WALLET_BYTES32 = 3;
 
-    function passportCall(address _userMagic, uint256 _userPKey,address _contract, bytes memory _data) internal {
-      passportCall(_userMagic, _userPKey, _contract, _data, 1000000, 0);
+
+    function passportMultiCall(address _userMagic, uint256 _userPKey, address[] memory _contracts, 
+        bytes[] memory _data) internal {
+        uint256 len = _contracts.length;
+        uint256[] memory gas = new uint256[](len);
+        uint256[] memory value = new uint256[](len);
+        for (uint256 i = 0; i < len; i++) {
+            gas[i] = 1000000;
+            value[i] = 0;
+        }
+        passportMultiCall(_userMagic, _userPKey, _contracts, _data, gas, value);
     }
 
-    function passportCall(address _userMagic, uint256 _userPKey, address _contract, bytes memory _data, uint256 _gas, uint256 _value) internal {
-        IModuleCalls.Transaction memory transaction = IModuleCalls.Transaction({
-            delegateCall: false,
-            revertOnError: true,
-            gasLimit: _gas,
-            target: _contract,
-            value: _value,
-            data: _data
-        });
-        IModuleCalls.Transaction[] memory txs = new IModuleCalls.Transaction[](1);
-        txs[0] = transaction;
+    function passportMultiCall(address _userMagic, uint256 _userPKey, address[] memory _contracts, 
+        bytes[] memory _data, uint256[] memory _gas, uint256[] memory _value) internal {
+        uint256 len = _contracts.length;
+        require(len == _data.length, "Mismatched lengths");
+        require(len == _gas.length, "Mismatched lengths");
+        require(len == _value.length, "Mismatched lengths");
+        IModuleCalls.Transaction[] memory txs = new IModuleCalls.Transaction[](_contracts.length);
+        for (uint256 i = 0; i < len; i++) {
+            IModuleCalls.Transaction memory transaction = IModuleCalls.Transaction({
+                delegateCall: false,
+                revertOnError: true,
+                gasLimit: _gas[i],
+                target: _contracts[i],
+                value: _value[i],
+                data: _data[i]
+            });
+            txs[i] = transaction;
+        }
+
         bytes32 walletSalt = encodeImageHash(_userMagic, address(immutableSigner));
         address walletCounterFactualAddress = addressOf(address(walletFactory), address(startupWallet), walletSalt);
         uint256 nonce = getNextNonce(walletCounterFactualAddress);
@@ -207,6 +224,22 @@ contract ChainInfrastructure is Globals {
         multiCallDeploy.deployAndExecute(walletCounterFactualAddress, 
             address(startupWallet), walletSalt, address(walletFactory), txs, nonce, signature);
         vm.stopBroadcast();
+    }
+
+    function passportCall(address _userMagic, uint256 _userPKey,address _contract, bytes memory _data) internal {
+      passportCall(_userMagic, _userPKey, _contract, _data, 1000000, 0);
+    }
+
+    function passportCall(address _userMagic, uint256 _userPKey, address _contract, bytes memory _data, uint256 _gas, uint256 _value) internal {
+        address[] memory contracts = new address[](1);
+        contracts[0] = _contract;
+        bytes[] memory data = new bytes[](1);
+        data[0] = _data;
+        uint256[] memory gas = new uint256[](1);
+        gas[0] = _gas;
+        uint256[] memory value = new uint256[](1);
+        value[0] = _value;
+        passportMultiCall(_userMagic, _userPKey, contracts, data, gas, value);
     }
 
     // Image hash can handle an aribtrary number of signers, with arbitrary weights and a threshold. 

@@ -27,6 +27,7 @@ import {BgemClaim, IBgem} from "../src/hunters-on-chain/Claim.sol";
 import {HuntersOnChainClaimGame} from "../src/hunters-on-chain/HuntersOnChainClaimGame.sol";
 import {Equipments} from "../src/hunters-on-chain/Equipments.sol";
 import {Artifacts} from "../src/hunters-on-chain/Artifacts.sol";
+import {Recipe} from "../src/hunters-on-chain/Recipe.sol";
 
 // Guild of Guardians
 import {GuildOfGuardiansClaimGame} from "../src/guild-of-guardians/GuildOfGuardiansClaimGame.sol";
@@ -60,6 +61,9 @@ contract Applications is ChainInfrastructure {
     HuntersOnChainClaimGame huntersOnChainClaimGame;
     Equipments huntersOnChainEquipments;
     Artifacts huntersOnChainArtifacts;
+    Recipe huntersOnChainRecipe;
+    uint256 public constant HUNTERS_ON_CHAIN_CHEST1 = 1;
+    uint256 public constant HUNTERS_ON_CHAIN_COST = 1000 gwei;
 
     // Guild of Guardians
     GuildOfGuardiansClaimGame guildOfGuardiansClaimGame;

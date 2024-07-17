@@ -1,5 +1,7 @@
+// Code from: https://explorer.immutable.com/address/0x04Eb90B9AE5Be1a0130B2239bE735F916064a810?tab=contract
+
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.19;
+pragma solidity ^0.8;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -179,7 +181,6 @@ contract Recipe is Ownable, StudioSignature {
         require(msg.value >= (config.estimatedGas * tx.gasprice * config.multiplier), "Matic amount lower than expected");
 
         (bool sent,) = paymentReceiver.call{value: msg.value}("");
-
         require(sent, "Failed to send Ether");
         require(bgem.transferFrom(msg.sender, studio, config.bgemPrice), "Bgem transfer failed");
 

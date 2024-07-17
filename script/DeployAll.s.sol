@@ -25,6 +25,7 @@ import {BgemClaim, IBgem} from "../src/hunters-on-chain/Claim.sol";
 import {HuntersOnChainClaimGame} from "../src/hunters-on-chain/HuntersOnChainClaimGame.sol";
 import {Equipments} from "../src/hunters-on-chain/Equipments.sol";
 import {Artifacts} from "../src/hunters-on-chain/Artifacts.sol";
+import {Recipe, IBoom, IBgem as IBgem2, IMintable1155} from "../src/hunters-on-chain/Recipe.sol";
 
 // Guild of Guardians
 import {GuildOfGuardiansClaimGame} from "../src/guild-of-guardians/GuildOfGuardiansClaimGame.sol";
@@ -205,6 +206,19 @@ contract DeployAll is Applications {
         huntersOnChainClaimGame = new HuntersOnChainClaimGame(admin, admin, admin);
         vm.writeLine(path, "huntersOnChainClaimGame deployed to address");
         vm.writeLine(path, Strings.toHexString(address(huntersOnChainClaimGame)));
+        vm.stopBroadcast();
+
+        vm.startBroadcast(deployerPKey);
+        huntersOnChainRecipe = new Recipe(
+            uint32(block.chainid), huntersOnChainOffchainSigner, admin, 
+            IBgem2(address(bgemErc20)), IBoom(address(0)),  
+            IMintable1155(address(huntersOnChainArtifacts)), 
+            IMintable1155(address(huntersOnChainEquipments)), 
+            IMintable1155(address(huntersOnChainShards)));
+        Recipe.IChestConfig memory chestOneConfig = Recipe.IChestConfig(170000, 0, HUNTERS_ON_CHAIN_COST, true);
+        huntersOnChainRecipe.setChestConfig(HUNTERS_ON_CHAIN_CHEST1, chestOneConfig);
+        vm.writeLine(path, "huntersOnChainRecipe deployed to address");
+        vm.writeLine(path, Strings.toHexString(address(huntersOnChainRecipe)));
         vm.stopBroadcast();
     }
 

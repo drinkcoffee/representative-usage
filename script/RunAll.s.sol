@@ -9,6 +9,7 @@ import {DeployAll} from "./DeployAll.s.sol";
 
 // Open Zeppelin contracts
 import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
+import {IERC20} from "@openzeppelin/contracts/interfaces/IERC20.sol";
 // Slightly hacked Open Zeppelin contracts
 import {EIP712WithChanges} from "./EIP712WithChanges.sol";
 
@@ -26,6 +27,7 @@ import {BgemClaim, IBgem} from "../src/hunters-on-chain/Claim.sol";
 import {HuntersOnChainClaimGame} from "../src/hunters-on-chain/HuntersOnChainClaimGame.sol";
 import {Equipments} from "../src/hunters-on-chain/Equipments.sol";
 import {Artifacts} from "../src/hunters-on-chain/Artifacts.sol";
+import {Recipe} from "../src/hunters-on-chain/Recipe.sol";
 
 // Guild of Guardians
 import {GuildOfGuardiansClaimGame} from "../src/guild-of-guardians/GuildOfGuardiansClaimGame.sol";
@@ -46,7 +48,12 @@ contract RunAll is DeployAll {
         vm.readLine(path); // Discard line: the run name
 
         loadAccounts(runName);
-        loadDeployedContracts();
+
+        loadPassportWalletContracts();
+        loadGemGame();
+        // Applications don't directly interact with Royalty Allowlist at run time, so nothing to load.
+        loadHuntersOnChain();
+        loadGuildOfGuardians();
 
         runAll();
     }
@@ -122,12 +129,6 @@ contract RunAll is DeployAll {
     }
 
 
-    function loadDeployedContracts() public {
-        loadPassportWalletContracts();
-        loadGemGame();
-        // Applications don't directly interact with Royalty Allowlist at run time, so nothing to load.
-        loadHuntersOnChain();
-    }
 
 
     function loadGemGame() private {
@@ -177,6 +178,18 @@ contract RunAll is DeployAll {
         huntersOnChainClaimGame = HuntersOnChainClaimGame(vm.parseAddress(vm.readLine(path)));
         console.logString("Loaded huntersOnChainClaimGame as");
         console.logAddress(address(huntersOnChainClaimGame));
+
+        vm.readLine(path); // Discard line: huntersOnChainRecipe deployed to address
+        huntersOnChainRecipe = Recipe(vm.parseAddress(vm.readLine(path)));
+        console.logString("Loaded huntersOnChainClaimRecipe as");
+        console.logAddress(address(huntersOnChainRecipe));
+    }
+
+    function loadGuildOfGuardians() private {
+        vm.readLine(path); // Discard line: guildOfGuardiansClaimGame deployed to address
+        guildOfGuardiansClaimGame = GuildOfGuardiansClaimGame(vm.parseAddress(vm.readLine(path)));
+        console.logString("Loaded guildOfGuardiansClaimGame as");
+        console.logAddress(address(guildOfGuardiansClaimGame));
     }
 
 
@@ -248,9 +261,13 @@ contract RunAll is DeployAll {
         console.logUint(T_EOA_BLACKPASS);
         console.logUint(T_EOA_HUNTERS_ON_CHAIN_FUND);
 
+        // Create some initial passport wallets.
+        for (uint256 j=0; j < 2; j++) {
+            getNewPassportMagic();
+        }
 
-
-        for (uint256 i = 0; i < 1000; i++) {
+       // If the system loops around about 79346 times, it runs out of EVM memory space.
+       for (uint256 i = 0; i < 70000; i++) {
             uint256 drbg = getNextDrbgOutput();
 
             if (drbg < T_PASSPORT_GEM_GAME_WITH_NEW_PASSPORT) {
@@ -260,10 +277,10 @@ contract RunAll is DeployAll {
                 callGemGameFromUsersPassport(false);
             }
             else if (drbg < T_PASSPORT_HUNTERS_ON_CHAIN_CLAIM_GAME) {
-                callHuntersOnChainClaimGamePassport(false);
+               callHuntersOnChainClaimGamePassport(false);
             }
             else if (drbg < T_PASSPORT_HUNTERS_ON_CHAIN_RECIPE) {
-                console.log("TODO");
+                callHuntersOnChainRecipeOpenChestPassport(false);
             }
             else if (drbg < T_PASSPORT_HUNTERS_ON_CHAIN_BITGEM) {
                 callHuntersOnChainBGemClaimPassport(false);
@@ -284,7 +301,7 @@ contract RunAll is DeployAll {
                 callHuntersOnChainBGemClaimEOA();
             }
             else if (drbg < T_EOA_HUNTERS_ON_CHAIN_RELAYER_MINT) {
-                callHuntersOnChainBGemMintERC20(false);
+               callHuntersOnChainBGemMintERC20(false);
             }
             else if (drbg < T_EOA_HUNTERS_ON_CHAIN_RELAYER_SHARD_MINT) {
                 callShardsERC1155SafeMintBatch(false);
@@ -296,18 +313,18 @@ contract RunAll is DeployAll {
                 callValueTransferEOAtoEOA();
             }
             else if (drbg < T_EOA_BABY_SHARK_UNIVERSE_PROXY) {
-                console.log("TODO");
+                console.log("TODO: EOA_BABY_SHARK_UNIVERSE_PROXY");
             }
             else if (drbg < T_EOA_BABY_SHARK_UNIVERSE) {
-                console.log("TODO");
+                console.log("TODO: EOA_BABY_SHARK_UNIVERSE");
             }
             else if (drbg < T_EOA_BLACKPASS) {
-                console.log("TODO");
+                console.log("TODO: EOA_BLACKPASS");
             }
             else if (drbg < T_EOA_HUNTERS_ON_CHAIN_FUND) {
-                console.log("TODO");
+                console.log("TODO: EOA_HUNTERS_ON_CHAIN_FUND");
             }
-        }
+       }
     }
 
     // Deterministic Random Sequence Generator.
@@ -315,7 +332,7 @@ contract RunAll is DeployAll {
     function getNextDrbgOutput() private returns (uint256) {
         bytes32 hashOfCounter = keccak256(abi.encodePacked(drbgCounter++));
         uint256 output = uint256(hashOfCounter) % TOTAL;
-        console.log("DRBG output: %i", output);
+        console.log("DRBG output: %i, %i", output, drbgCounter);
         return output;
     }
 
@@ -356,7 +373,7 @@ contract RunAll is DeployAll {
         (playerMagic, /*playerMagicPKey*/) = _useNewPassport ? getNewPassportMagic() : getDeployedPassportMagic();
         address playerCfa = cfa(playerMagic);
 
-        bytes memory toCall = abi.encodeWithSelector(ImmutableERC20MinterBurnerPermit.mint.selector, playerCfa, uint256(25));
+        bytes memory toCall = abi.encodeWithSelector(ImmutableERC20MinterBurnerPermit.mint.selector, playerCfa, 1001 gwei);
         Relayer.ForwardRequest memory request0 = Relayer.ForwardRequest(
             /* from   */ address(0),
             /* to     */ address(bgemErc20),
@@ -454,7 +471,7 @@ contract RunAll is DeployAll {
 
     function createBGemClaim(address _wallet, uint256 _nonce) private pure returns(BgemClaim.EIP712Claim memory) {
         BgemClaim.EIP712Claim memory claim = BgemClaim.EIP712Claim(
-            /* amount */    10000000000000000000,
+            /* amount */    1002 gwei,
             /* wallet */    _wallet,
             /* gameId */    1,
             /* nonce */     _nonce
@@ -467,6 +484,30 @@ contract RunAll is DeployAll {
         (address playerMagic, uint256 playerMagicPKey) = _useNewPassport ? getNewPassportMagic() : getDeployedPassportMagic();
         passportCall(playerMagic, playerMagicPKey, address(huntersOnChainClaimGame), 
             abi.encodeWithSelector(HuntersOnChainClaimGame.claim.selector));
+    }
+
+    function callHuntersOnChainRecipeOpenChestPassport(bool _useNewPassport) public {
+        console.logString("callHuntersOnChainRecipeOpenChestPassport");
+        // Check the user's balance.
+        (address playerMagic, uint256 playerMagicPKey) = _useNewPassport ? getNewPassportMagic() : getDeployedPassportMagic();
+        address playerCfa = cfa(playerMagic);
+        //console.log("Before call1: Balanace of %s is %i", playerCfa, bgemErc20.balanceOf(playerCfa));
+        // For some non-obvious reason, the simlation fails with this conditional logic.
+        //if (bgemErc20.balanceOf(playerCfa) < 1000 gwei) {
+            vm.startBroadcast(huntersOnChainMinter);
+            bgemErc20.mint(playerCfa, 1003 gwei);
+            vm.stopBroadcast();
+        //}
+        //console.log("Before call2: Balanace of %s is %i", playerCfa, bgemErc20.balanceOf(playerCfa));
+
+        address[] memory contracts = new address[](2);
+        contracts[0] = address(bgemErc20);
+        contracts[1] = address(huntersOnChainRecipe);
+        bytes[] memory data = new bytes[](2);
+        data[0] = abi.encodeWithSelector(IERC20.approve.selector, address(huntersOnChainRecipe), HUNTERS_ON_CHAIN_COST);
+        data[1] = abi.encodeWithSelector(Recipe.openChest.selector, HUNTERS_ON_CHAIN_CHEST1);
+        passportMultiCall(playerMagic, playerMagicPKey, contracts, data);
+        //console.log("After call: Balanace of %s is %i", playerCfa, bgemErc20.balanceOf(playerCfa));
     }
 
     function callGuildOfGuardiansClaimGamePassport(bool _useNewPassport) public {
