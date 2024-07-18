@@ -113,22 +113,22 @@ contract ChainInfrastructure is Globals {
 
     // NOTE: Passport must be installed prior to calling this.
     function installRoyaltyAllowlist() internal {
-        vm.startBroadcast(deployerPKey);
-        OperatorAllowlistUpgradeable impl = new OperatorAllowlistUpgradeable();
         bytes memory initData = abi.encodeWithSelector(
             OperatorAllowlistUpgradeable.initialize.selector, admin, admin, admin
         );
+        vm.startBroadcast(deployerPKey);
+        OperatorAllowlistUpgradeable impl = new OperatorAllowlistUpgradeable();
         ERC1967Proxy proxy = new ERC1967Proxy(address(impl), initData);
-        royaltyAllowlist = OperatorAllowlistUpgradeable(address(proxy));
         vm.stopBroadcast();
+        royaltyAllowlist = OperatorAllowlistUpgradeable(address(proxy));
 
         // Execute a call which will cause a user's passport wallet to be deployed
         (address userMagic, uint256 userMagicPKey) = getNewPassportMagic();
         passportCall(userMagic, userMagicPKey, address(latestWalletImplLocator), abi.encodeWithSelector(latestWalletImplLocator.latestWalletImplementation.selector));
         address aWalletProxyContract = cfa(userMagic);
 
-        // Add all passport wallets to the royalty allowlist. That is, all contracts with the same 
-        // bytecode as the passport wallet proxy contract deployed in the gem call above.
+        // // Add all passport wallets to the royalty allowlist. That is, all contracts with the same 
+        // // bytecode as the passport wallet proxy contract deployed in the gem call above.
         vm.startBroadcast(adminPKey);
         royaltyAllowlist.addWalletToAllowlist(aWalletProxyContract);
         // TODO add seaport to allow list
@@ -181,6 +181,9 @@ contract ChainInfrastructure is Globals {
     uint8 private constant SIG_TYPE_ETH_SIGN = 2;
     uint8 private constant SIG_TYPE_WALLET_BYTES32 = 3;
 
+    // How much gas should be given to passport transactions?
+    uint256 private constant PASSPORT_TX_GAS = 100000;
+
 
     function passportMultiCall(address _userMagic, uint256 _userPKey, address[] memory _contracts, 
         bytes[] memory _data) internal {
@@ -188,7 +191,7 @@ contract ChainInfrastructure is Globals {
         uint256[] memory gas = new uint256[](len);
         uint256[] memory value = new uint256[](len);
         for (uint256 i = 0; i < len; i++) {
-            gas[i] = 1000000;
+            gas[i] = PASSPORT_TX_GAS;
             value[i] = 0;
         }
         passportMultiCall(_userMagic, _userPKey, _contracts, _data, gas, value);
@@ -227,7 +230,7 @@ contract ChainInfrastructure is Globals {
     }
 
     function passportCall(address _userMagic, uint256 _userPKey,address _contract, bytes memory _data) internal {
-      passportCall(_userMagic, _userPKey, _contract, _data, 1000000, 0);
+      passportCall(_userMagic, _userPKey, _contract, _data, PASSPORT_TX_GAS, 0);
     }
 
     function passportCall(address _userMagic, uint256 _userPKey, address _contract, bytes memory _data, uint256 _gas, uint256 _value) internal {

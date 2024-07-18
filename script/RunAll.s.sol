@@ -39,7 +39,7 @@ contract RunAll is DeployAll {
         deployAll();
 
         // Have this different for each run.
-        string memory runName = "0";
+        string memory runName = RUN_NAME;
         console.logString("Start *********************************");
         console.logString(string(abi.encodePacked("Loading deployment address information from: ", path)));
 
@@ -261,13 +261,28 @@ contract RunAll is DeployAll {
         console.logUint(T_EOA_BLACKPASS);
         console.logUint(T_EOA_HUNTERS_ON_CHAIN_FUND);
 
+        // Uncomment to run all possible function sequentially first.
+        // This can be helpful when debugging.
+        // callGemGameFromUsersPassport(true);
+        // callGemGameFromUsersPassport(false);
+        // callHuntersOnChainClaimGamePassport(false);
+        // callHuntersOnChainRecipeOpenChestPassport(false);
+        // callHuntersOnChainBGemClaimPassport(false);
+        // callGuildOfGuardiansClaimGamePassport(false);
+        // callHuntersOnChainBGemClaimEOA();
+        // callHuntersOnChainBGemMintERC20(false);
+        // callShardsERC1155SafeMintBatch(false);
+        // callGemGameFromUserEOA();
+        // callValueTransferEOAtoEOA();
+
+
         // Create some initial passport wallets.
-        for (uint256 j=0; j < 2; j++) {
+        for (uint256 j=0; j < 10; j++) {
             getNewPassportMagic();
         }
 
        // If the system loops around about 79346 times, it runs out of EVM memory space.
-       for (uint256 i = 0; i < 70000; i++) {
+       for (uint256 i = 0; i < 7000; i++) {
             uint256 drbg = getNextDrbgOutput();
 
             if (drbg < T_PASSPORT_GEM_GAME_WITH_NEW_PASSPORT) {
@@ -324,7 +339,7 @@ contract RunAll is DeployAll {
             else if (drbg < T_EOA_HUNTERS_ON_CHAIN_FUND) {
                 console.log("TODO: EOA_HUNTERS_ON_CHAIN_FUND");
             }
-       }
+      }
     }
 
     // Deterministic Random Sequence Generator.
@@ -356,7 +371,9 @@ contract RunAll is DeployAll {
     // In this test system, it is impossible to actually do an EOA value transfer.
     function callGemGameFromUserEOA() public {
         console.logString("callGemGameFromUserEOA");
-        vm.startBroadcast(getEOAWithNativeTokens());
+        uint256 userPKey;
+        (, userPKey) = getEOAWithNativeTokens();
+        vm.startBroadcast(userPKey);
         gemGame.earnGem();
         vm.stopBroadcast();
     }
@@ -424,13 +441,13 @@ contract RunAll is DeployAll {
 
     function callHuntersOnChainBGemClaimEOA() public {
         console.logString("callHuntersOnChainBGemClaimEOA");
-        address user = getEOAWithNativeTokens();
+        (address user, uint256 userPKey) = getEOAWithNativeTokens();
         (BgemClaim.EIP712Claim memory claim, bytes memory sig) = createSignedBGemClaim(user);
-        vm.startBroadcast(user);
+        vm.startBroadcast(userPKey);
         huntersOnChainClaim.claim(claim, sig);
+        vm.stopBroadcast();
         // console.logString("HuntersOnChainBGemClaimEOA: Contract: huntersOnChainClaim, signed by: EOA. Data:");
         // console.logString(string(abi.encodeWithSelector(BgemClaim.claim.selector, claim, sig)));
-        vm.stopBroadcast();
     }
 
     function callHuntersOnChainBGemClaimPassport(bool _useNewPassport) public {

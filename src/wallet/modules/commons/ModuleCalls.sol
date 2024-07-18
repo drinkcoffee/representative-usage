@@ -86,6 +86,46 @@ abstract contract ModuleCalls is IModuleCalls, IModuleAuth, ModuleERC165, Module
     _execute(txHash, _txs);
   }
 
+// TODO NOTE Peter added code start
+// Added some debug to help work out when the gas specified for the passport
+// transaction is more than the remaining gas.
+
+    bytes16 private constant HEX_DIGITS = "0123456789abcdef";
+
+    /**
+     * @dev The `value` string doesn't fit in the specified `length`.
+     */
+    error StringsInsufficientHexLength(uint256 value, uint256 length);
+
+    /**
+     * @dev Converts a `uint256` to its ASCII `string` hexadecimal representation.
+     */
+    function toHexString(uint256 value) internal pure returns (string memory) {
+        unchecked {
+            return toHexString(value, 32);
+        }
+    }
+
+    /**
+     * @dev Converts a `uint256` to its ASCII `string` hexadecimal representation with fixed length.
+     */
+    function toHexString(uint256 value, uint256 length) internal pure returns (string memory) {
+        uint256 localValue = value;
+        bytes memory buffer = new bytes(2 * length + 2);
+        buffer[0] = "0";
+        buffer[1] = "x";
+        for (uint256 i = 2 * length + 1; i > 1; --i) {
+            buffer[i] = HEX_DIGITS[localValue & 0xf];
+            localValue >>= 4;
+        }
+        if (localValue != 0) {
+            revert StringsInsufficientHexLength(value, length);
+        }
+        return string(buffer);
+    }
+// TODO NOTE Peter added code end
+
+
   /**
    * @notice Executes a list of transactions
    * @param _txHash  Hash of the batch of transactions
@@ -102,7 +142,22 @@ abstract contract ModuleCalls is IModuleCalls, IModuleAuth, ModuleERC165, Module
       bool success;
       bytes memory result;
 
-      require(gasleft() >= transaction.gasLimit, "ModuleCalls#_execute: NOT_ENOUGH_GAS");
+// TODO NOTE Peter added code start
+
+      if (gasleft() < transaction.gasLimit) {
+        // Use this form of error throwing so that Anvil displays the error message.
+        // Anvil is not compatible with new Solidity typed error messages.
+        uint256 gasLeft = gasleft();
+        string memory a = toHexString(gasLeft);
+        string memory b = toHexString(transaction.gasLimit);
+        revert (string(abi.encodePacked(
+          "Passport ModuleCalls:_execute failing: gasleft < transaction.gasLimit: ",
+          "gasleft ", a, 
+          ", tx.gaslimit ", b)));
+      }
+// TODO NOTE Peter added code end
+
+//      require(gasleft() >= transaction.gasLimit, "ModuleCalls#_execute: NOT_ENOUGH_GAS");
 
       if (transaction.delegateCall) {
         (success, result) = transaction.target.delegatecall{

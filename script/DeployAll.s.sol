@@ -36,9 +36,9 @@ contract DeployAll is Applications {
     }
 
     function deployAll() public {
-        uint256 treasuryPKey = 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80;
+        uint256 treasuryPKey = 0x2a871d0798f97d79848a013d4936a73bf4cc922c825d33c1cf7073dff6d409c6;
         // Have this different for each run.
-        string memory runName = "0";
+        string memory runName = RUN_NAME;
         vm.removeFile(path);
         vm.writeLine(path, ("Execution Start *********************************"));
         console.logString(string(abi.encodePacked("Deployment address Information logged to: ", path)));
@@ -150,7 +150,9 @@ contract DeployAll is Applications {
     function installHuntersOnChain() private {
         address[] memory whiteListedMinters = new address[](1);
         whiteListedMinters[0] = huntersOnChainMinter;
+        vm.startBroadcast(deployerPKey);
         huntersOnChainRelayer = new Relayer(whiteListedMinters);
+        vm.stopBroadcast();
         vm.writeLine(path, "HuntersOnChainRelayer deployed to address");
         vm.writeLine(path, Strings.toHexString(address(huntersOnChainRelayer)));
 
@@ -162,45 +164,45 @@ contract DeployAll is Applications {
         vm.stopBroadcast();
         vm.startBroadcast(adminPKey);
         bgemErc20.grantMinterRole(huntersOnChainMinter);
+        vm.stopBroadcast();
         vm.writeLine(path, "bgemErc20 deployed to address");
         vm.writeLine(path, Strings.toHexString(address(bgemErc20)));
-        vm.stopBroadcast();
 
         string memory baseURIe = "https://api-imx.boomland.io/api/e/";
         string memory contractURIe = "https://api-imx.boomland.io";
         vm.startBroadcast(deployerPKey);
         huntersOnChainEquipments = new Equipments(admin, admin, admin, admin, 1000, baseURIe, contractURIe, address(royaltyAllowlist));
+        vm.stopBroadcast();
         vm.writeLine(path, "huntersOnChainEquipments deployed to address");
         vm.writeLine(path, Strings.toHexString(address(huntersOnChainEquipments)));
-        vm.stopBroadcast();
 
         string memory baseURIa = "https://api-imx.boomland.io/api/s/";
         string memory contractURIa = "https://api-imx.boomland.io";
         vm.startBroadcast(deployerPKey);
         huntersOnChainArtifacts = new Artifacts(admin, admin, admin, admin, 1000, baseURIa, contractURIa, address(royaltyAllowlist));
+        vm.stopBroadcast();
         vm.writeLine(path, "huntersOnChainArtifacts deployed to address");
         vm.writeLine(path, Strings.toHexString(address(huntersOnChainArtifacts)));
-        vm.stopBroadcast();
 
         string memory baseURIs = "https://api-imx.boomland.io/api/s/{id}";
         string memory contractURIs = "https://api-imx.boomland.io/api/v1/shard";
         vm.startBroadcast(deployerPKey);
         huntersOnChainShards = new Shards(admin, address(huntersOnChainRelayer), admin, admin, 1000, baseURIs, contractURIs, address(royaltyAllowlist));
+        vm.stopBroadcast();
         vm.writeLine(path, "huntersOnChainShards deployed to address");
         vm.writeLine(path, Strings.toHexString(address(huntersOnChainShards)));
-        vm.stopBroadcast();
 
         vm.startBroadcast(deployerPKey);
         huntersOnChainClaim = new BgemClaim(admin, IBgem(address(bgemErc20)), huntersOnChainOffchainSigner);
         huntersOnChainEIP712 = new EIP712WithChanges("Boomland Claim", "1", address(huntersOnChainClaim));
         vm.stopBroadcast();
-        vm.startBroadcast(huntersOnChainMinter);
+        vm.startBroadcast(huntersOnChainMinterPKey);
         bgemErc20.mint(address(huntersOnChainClaim), 1000000 ether);
+        vm.stopBroadcast();
         vm.writeLine(path, "huntersOnChainClaim deployed to address");
         vm.writeLine(path, Strings.toHexString(address(huntersOnChainClaim)));
         vm.writeLine(path, "huntersOnChainEIP712 deployed to address");
         vm.writeLine(path, Strings.toHexString(address(huntersOnChainEIP712)));
-        vm.stopBroadcast();
 
         vm.startBroadcast(deployerPKey);
         huntersOnChainClaimGame = new HuntersOnChainClaimGame(admin, admin, admin);
@@ -208,6 +210,7 @@ contract DeployAll is Applications {
         vm.writeLine(path, Strings.toHexString(address(huntersOnChainClaimGame)));
         vm.stopBroadcast();
 
+        Recipe.IChestConfig memory chestOneConfig = Recipe.IChestConfig(170000, 0, HUNTERS_ON_CHAIN_COST, true);
         vm.startBroadcast(deployerPKey);
         huntersOnChainRecipe = new Recipe(
             uint32(block.chainid), huntersOnChainOffchainSigner, admin, 
@@ -215,11 +218,10 @@ contract DeployAll is Applications {
             IMintable1155(address(huntersOnChainArtifacts)), 
             IMintable1155(address(huntersOnChainEquipments)), 
             IMintable1155(address(huntersOnChainShards)));
-        Recipe.IChestConfig memory chestOneConfig = Recipe.IChestConfig(170000, 0, HUNTERS_ON_CHAIN_COST, true);
         huntersOnChainRecipe.setChestConfig(HUNTERS_ON_CHAIN_CHEST1, chestOneConfig);
+        vm.stopBroadcast();
         vm.writeLine(path, "huntersOnChainRecipe deployed to address");
         vm.writeLine(path, Strings.toHexString(address(huntersOnChainRecipe)));
-        vm.stopBroadcast();
     }
 
 

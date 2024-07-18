@@ -1,30 +1,61 @@
 ## Represntative Transactions for Immutable zkEVM
 
-This repo contains contracts snapshotted on July 3, 2024 from various repos. The test code contains code to deploy contracts and the separate functions to call each of the Solidity functions to be called.
+**THIS REPO CONTAINS A SEED VALUE FROM WHICH MANY TEST PRIVATE KEYS ARE GENERATED. These are effectively hard coded. DO NOT USE IN PRODUCTION.**
 
-**THIS REPO CONTAINS TEST PRIVATE KEYS. These are effectively hard coded. DO NOT USE IN PRODUCTION.**
+The code in this repo allows for creation of transactions that deploy contracts and execute functions that are broadly representative of Immutable zkEVM as of early July 2024.
 
 
-To generate transactions for installing all contracts:
+## How to Run
 
-In one window:
+To generate transactions for installing all contracts, distributing native tokens (ETH or IMX depending on the chain), and then running transactions:
 
-```
-anvil
-```
-
-In another window:
+Open three command windows. In window #1:
 
 ```
-forge script -vvv --rpc-url http://127.0.0.1:8545  script/DeployAll.s.sol:DeployAll
+anvil --chain-id 1331 
 ```
 
-Anvil appears to be resetting, so the DeployAll is called at the start of the following RunAll. The calls are deterministic, so the addresses and private keys are the always the same. 
-
-To generate transactions to run against the deployed contracts:
+In window #2:
 
 ```
-forge script -vvv --rpc-url http://127.0.0.1:8545  script/RunAll.s.sol:RunAll
+socat -r ./temp/a.txt tcp-l:8546,fork,reuseaddr tcp:127.0.0.1:8545
 ```
 
-Transactions are in files in the `./broadcast` directory. A log file containing the auto generated addresses and keys are in the `./temp` directory.
+Note: If socat is not installed, and if running on MacOS, install using: `brew install socat`.
+
+In window #3:
+
+```
+forge script -vvv --rpc-url http://127.0.0.1:8546 --chain-id 1331 --broadcast -g 300 script/RunAll.s.sol:RunAll
+
+```
+
+# Notes
+
+Configuration:
+
+* The chain id is specified on the command line for `anvil` and `forge script`.
+* The addresses and private keys are deterministic. The values are derived the variable `RUN_NAME` in `./script/Globals.s.sol`.
+* All addresses are funded from a single initial hard coded address `treasuryPKey`. This is in `./script/DeployAll.s.sol`.
+* The amount of gas passed to individual Passport meta transactions is fixed. Function calls can specify this if needed. See `./script/ChainInfrastructure.s.sol` for passport function call alternatives.
+* The gas multiplier of 300% has been applied using the `-g 300`. This ensures the available gas, which is derived from forge's gas estimate, is above the fixed Passport meta transaction. This will mean that large transactions will exceed the block gas limit. The fix 
+for this is to supply each type of Passport call a better, customised, gas limit.
+
+Output:
+
+* Transactions metadata are in files in the `./broadcast` directory. 
+* Calls to the geth client are in `./temp.txt`. To extract just the lines containing transactions, use `cat ./temp/tx.txt | grep eth_send`.
+* `./temp/addresses-and-keys.txt` contains auto generated addresses and keys that are used in the deployment. 
+* Log information in in the screen for RunAll, before the transaction and block information. 
+
+Known limitations:
+
+* There is currently only one Passport Relayer EOA. When many transactions are submitted in quick succession, geth's transaction pool limit for the number of transactions from the one EOA has been exceeded. Anvil doesn't appear to have this check, and hence the transactions are failing.
+* The number of transactions is currently set to 7,000. Numbers of transactions above about 70,000 result in the system failing because forge's EVM simulator runs out of EVM memory.
+* Not all of the top transaction types have been implemented. In `./script/RunAll.s.sol` some of the options are listed as `TODO`.
+
+Other Notes:
+
+* The function calls are executed in a pseudo random sequence using a simplistic DRBG. This will generate a repeatable, but random looking set of function calls.
+* This repo contains contracts snapshotted on July 3, 2024 from various repos. The test code contains code to deploy contracts and the separate functions to call each of the Solidity functions to be called.
+
