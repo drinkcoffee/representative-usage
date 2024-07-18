@@ -30,6 +30,12 @@ forge script -vvv --rpc-url http://127.0.0.1:8546 --chain-id 1331 --broadcast -g
 
 ```
 
+To extract transactions that can then be submitted to a blockchain run the following command and extract the bytes in the param field:
+
+```
+cat ./temp/tx.txt | grep eth_send
+```
+
 # Notes
 
 Configuration:
