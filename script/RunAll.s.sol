@@ -282,7 +282,7 @@ contract RunAll is DeployAll {
         }
 
        // If the system loops around about 79346 times, it runs out of EVM memory space.
-       for (uint256 i = 0; i < 7000; i++) {
+       for (uint256 i = 0; i < 1; i++) {
             uint256 drbg = getNextDrbgOutput();
 
             if (drbg < T_PASSPORT_GEM_GAME_WITH_NEW_PASSPORT) {
