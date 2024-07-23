@@ -1,14 +1,7 @@
 # Script to generate ImmutableSeaportCreation.sol
 
-#import argparse
 import subprocess
 import re
-
-#prog = "Extract Transactions"
-#parser = argparse.ArgumentParser(prog)
-#parser.add_argument("infile", help="Input file containing all communication between script and Anvil.", type=str)
-#parser.add_argument("outfile", help="Output file containing all transactions.", type=str)
-#args = parser.parse_args()
 
 print("Welcome to ImmutableSeaportCreation")
 
@@ -27,9 +20,12 @@ except subprocess.CalledProcessError as e:
 
 with open(outfile, 'wb') as file_out:
     file_out.write(b"// Generated file - do not modify directly\n")
+    file_out.write(b"// To re-generate: python3 scripts/gen-immutableseaport.py\n")
+    file_out.write(b"\n")
     file_out.write(b"pragma solidity ^0.8;\n")
+    file_out.write(b"\n")
     file_out.write(b"contract ImmutableSeaportCreation {\n")
-    line = "    bytes public constant WALLET_DEPLOY_CODE = hex'" + bytecode + "';\n"
+    line = "    bytes internal constant SEAPORT_DEPLOY_CODE = hex'" + bytecode + "';\n"
     file_out.write(line.encode())
     file_out.write(b"}\n")
 

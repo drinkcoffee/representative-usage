@@ -12,7 +12,7 @@ To generate transactions for installing all contracts, distributing native token
 Open three command windows. In window #1:
 
 ```
-anvil --chain-id 1331 
+anvil --chain-id 13473 
 ```
 
 In window #2:
@@ -26,7 +26,7 @@ Note: If socat is not installed, and if running on MacOS, install using: `brew i
 In window #3:
 
 ```
-forge script -vvv --rpc-url http://127.0.0.1:8546 --chain-id 1331 --broadcast -g 300 script/RunAll.s.sol:RunAll
+forge script -vvv --rpc-url http://127.0.0.1:8546 --chain-id 13473 --priority-gas-price 10000000000 --with-gas-price 10000000100 script/RunAll.s.sol:RunAll --broadcast -g 300
 
 ```
 

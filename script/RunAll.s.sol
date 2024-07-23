@@ -49,7 +49,9 @@ contract RunAll is DeployAll {
 
         loadAccounts(runName);
 
+        loadCreate3Deployer();
         loadPassportWalletContracts();
+        loadSeaport();
         loadGemGame();
         // Applications don't directly interact with Royalty Allowlist at run time, so nothing to load.
         loadHuntersOnChain();

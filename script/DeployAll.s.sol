@@ -46,7 +46,9 @@ contract DeployAll is Applications {
         setUpAccounts(treasuryPKey, runName);
         distributeNativeTokenToGamePlayers();
 
+        installCreate3Deployer();
         installPassportWallet();
+        installSeaport();
         installGemGame();
         installRoyaltyAllowlist(); // Must be installed after Passport.
         installHuntersOnChain();

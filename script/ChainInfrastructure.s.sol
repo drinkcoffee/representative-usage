@@ -5,10 +5,15 @@ import {Script} from "forge-std/Script.sol";
 import {console} from "forge-std/Test.sol";
 
 import {Globals} from "./Globals.s.sol";
+import {ImmutableSeaportCreation} from "./generated/ImmutableSeaportCreation.sol";
 
 // Open Zeppelin contracts
 import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
+
+// Create3 Deployer
+import {AccessControlledDeployer} from "../src/im-contracts/deployer/AccessControlledDeployer.sol";
+import {OwnableCreate3Deployer} from "../src/im-contracts/deployer/create3/OwnableCreate3Deployer.sol";
 
 // Passport Wallet
 import {Factory} from "../src/wallet/Factory.sol";
@@ -22,8 +27,11 @@ import {IModuleCalls} from "../src/wallet/modules/commons/interfaces/IModuleCall
 // Immutable contracts
 import {OperatorAllowlistUpgradeable} from "../src/im-contracts/allowlist/OperatorAllowlistUpgradeable.sol";
 
+// Seaprt
+import {ImmutableSeaport} from "../src/im-contracts/trading/seaport/ImmutableSeaport.sol";
+import {ConduitController} from "../src/im-contracts/trading/seaport/conduit/ConduitController.sol";
 
-contract ChainInfrastructure is Globals {
+contract ChainInfrastructure is Globals, ImmutableSeaportCreation {
     // Royalty allowlist ******
     OperatorAllowlistUpgradeable royaltyAllowlist;
 
@@ -31,6 +39,10 @@ contract ChainInfrastructure is Globals {
     // This bytecode must precisely match that in src/contracts/Wallet.sol
     // Yul wallet proxy with PROXY_getImplementation
     bytes public constant WALLET_DEPLOY_CODE = hex'6054600f3d396034805130553df3fe63906111273d3560e01c14602b57363d3d373d3d3d3d369030545af43d82803e156027573d90f35b3d90fd5b30543d5260203df3';
+
+    // Create3 deployer
+    AccessControlledDeployer accessControlledDeployer;
+    OwnableCreate3Deployer create3DeployerFactory;
 
     // Passport relayer Ethereum transaction signing key.
     address public relayer;
@@ -51,7 +63,39 @@ contract ChainInfrastructure is Globals {
     MainModuleDynamicAuth private mainModuleDynamicAuth;
     ImmutableSigner private immutableSigner;
 
+    // Seaport
+    ConduitController seaportConduitController;
+    ImmutableSeaport seaport;
 
+    function installCreate3Deployer() internal {
+        vm.startBroadcast(deployerPKey);
+        accessControlledDeployer = new AccessControlledDeployer(admin, admin, admin, admin);
+        vm.writeLine(path, "AccessControlledDeployer deployed to address");
+        vm.writeLine(path, Strings.toHexString(address(accessControlledDeployer)));
+
+        create3DeployerFactory = new OwnableCreate3Deployer(address(accessControlledDeployer));
+        vm.writeLine(path, "OwnableCreate3Deployer deployed to address");
+        vm.writeLine(path, Strings.toHexString(address(create3DeployerFactory)));
+        vm.stopBroadcast();
+
+        address[] memory deployers = new address[](1);
+        deployers[0] = deployer;
+        vm.startBroadcast(adminPKey);
+        accessControlledDeployer.grantDeployerRole(deployers);
+        vm.stopBroadcast();
+    }
+
+    function loadCreate3Deployer() internal {
+        vm.readLine(path); // Discard line: AccessControlledDeployer deployed to address
+        accessControlledDeployer = AccessControlledDeployer(vm.parseAddress(vm.readLine(path)));
+        console.logString("Loaded accessControlledDeployer as");
+        console.logAddress(address(accessControlledDeployer));
+
+        vm.readLine(path); // Discard line: OwnableCreate3Deployer deployed to address
+        create3DeployerFactory = OwnableCreate3Deployer(vm.parseAddress(vm.readLine(path)));
+        console.logString("Loaded create3DeployerFactory as");
+        console.logAddress(address(create3DeployerFactory));
+    }
 
 
     function installPassportWallet() internal {
@@ -111,6 +155,34 @@ contract ChainInfrastructure is Globals {
         console.logAddress(address(immutableSigner));
     }
 
+    function installSeaport() internal {
+        vm.startBroadcast(deployerPKey);
+        seaportConduitController = new ConduitController();
+        vm.writeLine(path, "ConduitController deployed to address");
+        vm.writeLine(path, Strings.toHexString(address(seaportConduitController)));
+
+        bytes memory init = abi.encodePacked(WALLET_DEPLOY_CODE, 
+            uint256(uint160(address(seaportConduitController))), 
+            uint256(uint160(admin)));
+        seaport = ImmutableSeaport(payable(accessControlledDeployer.deploy(create3DeployerFactory, init, bytes32(0))));
+        vm.writeLine(path, "ImmutableSeaper deployed to address");
+        vm.writeLine(path, Strings.toHexString(address(seaport)));
+        vm.stopBroadcast();
+    }
+
+    function loadSeaport() internal {
+        vm.readLine(path); // Discard line: ConduitController deployed to address
+        seaportConduitController = ConduitController(vm.parseAddress(vm.readLine(path)));
+        console.logString("Loaded seaportConduitController as");
+        console.logAddress(address(seaportConduitController));
+
+        vm.readLine(path); // Discard line: ImmutableSeaport deployed to address
+        seaport = ImmutableSeaport(payable(vm.parseAddress(vm.readLine(path))));
+        console.logString("Loaded seaport as");
+        console.logAddress(address(seaport));
+    }
+
+
     // NOTE: Passport must be installed prior to calling this.
     function installRoyaltyAllowlist() internal {
         bytes memory initData = abi.encodeWithSelector(
@@ -134,7 +206,7 @@ contract ChainInfrastructure is Globals {
         // TODO add seaport to allow list
         vm.stopBroadcast();
     }
-
+   
 
 
     // ***************************************************
