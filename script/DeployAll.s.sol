@@ -26,6 +26,7 @@ import {HuntersOnChainClaimGame} from "../src/hunters-on-chain/HuntersOnChainCla
 import {Equipments} from "../src/hunters-on-chain/Equipments.sol";
 import {Artifacts} from "../src/hunters-on-chain/Artifacts.sol";
 import {Recipe, IBoom, IBgem as IBgem2, IMintable1155} from "../src/hunters-on-chain/Recipe.sol";
+import {Fund} from "../src/hunters-on-chain/Fund.sol";
 
 // Guild of Guardians
 import {GuildOfGuardiansClaimGame} from "../src/guild-of-guardians/GuildOfGuardiansClaimGame.sol";
@@ -75,7 +76,7 @@ contract DeployAll is Applications {
         vm.writeLine(path, "Root PKey");
         vm.writeLine(path, Strings.toHexString(rootPKey));
         vm.startBroadcast(_treasuryPKey);
-        payable(root).transfer(10 ether);
+        payable(root).transfer(30 ether);
         if (root.balance == 0) {
             console.logString("ERROR: Root has 0 native gas token");
             revert("Root has 0 native gas token");
@@ -88,7 +89,7 @@ contract DeployAll is Applications {
         vm.writeLine(path, "Deployer PKey");
         vm.writeLine(path, Strings.toHexString(deployerPKey));
         vm.startBroadcast(rootPKey);
-        payable(deployer).transfer(1 ether);
+        payable(deployer).transfer(2 ether);
         if (deployer.balance == 0) {
             console.logString("ERROR: Deployer has 0 native gas token");
             revert("Deployer has 0 native gas token");
@@ -101,7 +102,7 @@ contract DeployAll is Applications {
         vm.writeLine(path, "Admin PKey");
         vm.writeLine(path, Strings.toHexString(adminPKey));
         vm.startBroadcast(rootPKey);
-        payable(admin).transfer(1 ether);
+        payable(admin).transfer(2 ether);
         if (admin.balance == 0) {
             console.logString("ERROR: Admin has 0 native gas token");
             revert("Admin has 0 native gas token");
@@ -114,7 +115,7 @@ contract DeployAll is Applications {
         vm.writeLine(path, "Relayer PKey");
         vm.writeLine(path, Strings.toHexString(relayerPKey));
         vm.startBroadcast(rootPKey);
-        payable(relayer).transfer(1 ether);
+        payable(relayer).transfer(5 ether);
         vm.stopBroadcast();
 
         // Off-chain signing, so no native tokens needed.
@@ -130,7 +131,7 @@ contract DeployAll is Applications {
         vm.writeLine(path, "HuntersOnChainMinter PKey");
         vm.writeLine(path, Strings.toHexString(huntersOnChainMinterPKey));
         vm.startBroadcast(rootPKey);
-        payable(huntersOnChainMinter).transfer(1 ether);
+        payable(huntersOnChainMinter).transfer(10 ether);
         vm.stopBroadcast();
 
         // Off-chain signing, so no native tokens needed.
@@ -224,6 +225,12 @@ contract DeployAll is Applications {
         vm.stopBroadcast();
         vm.writeLine(path, "huntersOnChainRecipe deployed to address");
         vm.writeLine(path, Strings.toHexString(address(huntersOnChainRecipe)));
+
+        vm.startBroadcast(deployerPKey);
+        huntersOnChainFund = new Fund(huntersOnChainMinter);
+        vm.stopBroadcast();
+        vm.writeLine(path, "huntersOnChainFund deployed to address");
+        vm.writeLine(path, Strings.toHexString(address(huntersOnChainFund)));
     }
 
 

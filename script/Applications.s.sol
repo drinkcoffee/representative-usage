@@ -28,6 +28,7 @@ import {HuntersOnChainClaimGame} from "../src/hunters-on-chain/HuntersOnChainCla
 import {Equipments} from "../src/hunters-on-chain/Equipments.sol";
 import {Artifacts} from "../src/hunters-on-chain/Artifacts.sol";
 import {Recipe} from "../src/hunters-on-chain/Recipe.sol";
+import {Fund} from "../src/hunters-on-chain/Fund.sol";
 
 // Guild of Guardians
 import {GuildOfGuardiansClaimGame} from "../src/guild-of-guardians/GuildOfGuardiansClaimGame.sol";
@@ -64,6 +65,9 @@ contract Applications is ChainInfrastructure {
     Recipe huntersOnChainRecipe;
     uint256 public constant HUNTERS_ON_CHAIN_CHEST1 = 1;
     uint256 public constant HUNTERS_ON_CHAIN_COST = 1000 gwei;
+    Fund huntersOnChainFund;
+    uint256 public constant HUNTERS_ON_CHAIN_NEW_USERS_PER_TX = 500;
+    uint256 public constant HUNTERS_ON_CHAIN_SEQUENTIAL_TXES = 15;
 
     // Guild of Guardians
     GuildOfGuardiansClaimGame guildOfGuardiansClaimGame;

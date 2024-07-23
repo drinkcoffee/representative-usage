@@ -26,7 +26,7 @@ Note: If socat is not installed, and if running on MacOS, install using: `brew i
 In window #3:
 
 ```
-forge script -vvv --rpc-url http://127.0.0.1:8546 --chain-id 13473 --priority-gas-price 10000000000 --with-gas-price 10000000100 script/RunAll.s.sol:RunAll --broadcast -g 300
+forge script -vvv --rpc-url http://127.0.0.1:8546 --chain-id 13473 --priority-gas-price 10000000000 --with-gas-price 10000000100 script/RunAll.s.sol:RunAll --broadcast -g 150
 
 ```
 
@@ -34,6 +34,13 @@ To extract transactions that can then be submitted to a blockchain run the follo
 
 ```
 python3 scripts/extract-transactions.py temp/tx.txt temp/raw.txt
+```
+
+
+# Adding New Passport Calls
+The gas passed to Passport calls needs to be estimated. For the purposes of this test code, a simplistic fixed methodology is used, using the forge command (where in this case it finds gas estimates for the GemGame).
+```
+forge inspect src/im-contracts/games/gems/GemGame.sol:GemGame gasEstimates
 ```
 
 # Notes

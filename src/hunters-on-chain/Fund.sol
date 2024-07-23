@@ -23,12 +23,15 @@ contract Fund is Ownable {
         for (uint256 i = 0; i < _wallets.length; i++) {
             require(total >= _balances[i], "Insufficient balance.");
             total -= _balances[i];
-            (bool sent, bytes memory data) = _wallets[i].call{value: _balances[i]}("");
+            bool sent;
+            (sent, ) = _wallets[i].call{value: _balances[i]}("");
             require(sent, "Failed to send Ether");
         }
     }
 
     function withdraw(address payable wallet) external payable onlyOwner {
-        (bool sent, bytes memory data) = wallet.call{value: address(this).balance}("");
+        (bool sent, ) = wallet.call{value: address(this).balance}("");
+        // NOTE: I have added the revert.
+        require(sent, "Withdrawal failed");
     }
 }

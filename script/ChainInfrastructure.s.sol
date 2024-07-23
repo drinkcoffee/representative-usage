@@ -196,7 +196,7 @@ contract ChainInfrastructure is Globals, ImmutableSeaportCreation {
 
         // Execute a call which will cause a user's passport wallet to be deployed
         (address userMagic, uint256 userMagicPKey) = getNewPassportMagic();
-        passportCall(userMagic, userMagicPKey, address(latestWalletImplLocator), abi.encodeWithSelector(latestWalletImplLocator.latestWalletImplementation.selector));
+        passportCall(userMagic, userMagicPKey, address(latestWalletImplLocator), abi.encodeWithSelector(latestWalletImplLocator.latestWalletImplementation.selector), 20000, 0);
         address aWalletProxyContract = cfa(userMagic);
 
         // // Add all passport wallets to the royalty allowlist. That is, all contracts with the same 
