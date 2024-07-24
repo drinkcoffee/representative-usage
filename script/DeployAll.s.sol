@@ -40,12 +40,14 @@ contract DeployAll is Applications {
         uint256 treasuryPKey = 0x2a871d0798f97d79848a013d4936a73bf4cc922c825d33c1cf7073dff6d409c6;
         // Have this different for each run.
         string memory runName = RUN_NAME;
-        vm.removeFile(path);
+        if (vm.exists(path)) {
+            vm.removeFile(path);
+        }
         vm.writeLine(path, ("Execution Start *********************************"));
         console.logString(string(abi.encodePacked("Deployment address Information logged to: ", path)));
 
         setUpAccounts(treasuryPKey, runName);
-        distributeNativeTokenToGamePlayers();
+        distributeNativeTokenToGamePlayers(runName);
 
         installCreate3Deployer();
         installPassportWallet();

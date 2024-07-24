@@ -48,7 +48,8 @@ contract RunAll is DeployAll {
         vm.readLine(path); // Discard line: Run Name
         vm.readLine(path); // Discard line: the run name
 
-       loadAccounts(runName);
+        loadAccounts(runName);
+        loadUserEOAs(runName);
 
         loadCreate3Deployer();
         loadPassportWalletContracts();
@@ -58,7 +59,7 @@ contract RunAll is DeployAll {
         loadHuntersOnChain();
         loadGuildOfGuardians();
 
-       runAll();
+        runAll();
     }
 
     function loadAccounts(string memory /* _runName */) internal {
@@ -269,8 +270,7 @@ contract RunAll is DeployAll {
         console.logUint(T_EOA_BLACKPASS);
         console.logUint(T_EOA_HUNTERS_ON_CHAIN_FUND);
 
-        // Uncomment to run all possible function sequentially first.
-        // This can be helpful when debugging.
+        // Call everything once, just to make sure it doesn't blow up.
         callGemGameFromUsersPassport(true);
         callGemGameFromUsersPassport(false);
         callHuntersOnChainClaimGamePassport(false);
@@ -291,7 +291,7 @@ contract RunAll is DeployAll {
         }
 
        // If the system loops around about 79346 times, it runs out of EVM memory space.
-       for (uint256 i = 0; i < 70000; i++) {
+       for (uint256 i = 0; i < 10000; i++) {
             uint256 drbg = getNextDrbgOutput();
 
             if (drbg < T_PASSPORT_GEM_GAME_WITH_NEW_PASSPORT) {
