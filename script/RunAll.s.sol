@@ -271,30 +271,32 @@ contract RunAll is DeployAll {
         console.logUint(T_EOA_HUNTERS_ON_CHAIN_FUND);
 
         // Call everything once, just to make sure it doesn't blow up.
-        callGemGameFromUsersPassport(true);
-        callGemGameFromUsersPassport(false);
-        callHuntersOnChainClaimGamePassport(false);
-        callHuntersOnChainRecipeOpenChestPassport(false);
-        callHuntersOnChainBGemClaimPassport(false);
-        callGuildOfGuardiansClaimGamePassport(false);
-        callHuntersOnChainBGemClaimEOA();
-        callHuntersOnChainBGemMintERC20(false);
-        callShardsERC1155SafeMintBatch(false);
-        callGemGameFromUserEOA();
-        callValueTransferEOAtoEOA();
-        callHuntersOnChainFund();
+        // callGemGameFromUsersPassport(true);
+        // callGemGameFromUsersPassport(false);
+        // callHuntersOnChainClaimGamePassport(false);
+        // callHuntersOnChainRecipeOpenChestPassport(false);
+        // callHuntersOnChainBGemClaimPassport(false);
+        // callGuildOfGuardiansClaimGamePassport(false);
+        // callHuntersOnChainBGemClaimEOA();
+        // callHuntersOnChainBGemMintERC20(false);
+        // callShardsERC1155SafeMintBatch(false);
+        // callGemGameFromUserEOA();
+        // callValueTransferEOAtoEOA();
+        // callHuntersOnChainFund();
 
 
-        // Create some initial passport wallets.
-        for (uint256 j=0; j < 10; j++) {
-            getNewPassportMagic();
-        }
+        // // Create some initial passport wallets.
+        // for (uint256 j=0; j < 10; j++) {
+        //     getNewPassportMagic();
+        // }
 
        // If the system loops around about 79346 times, it runs out of EVM memory space.
-       for (uint256 i = 0; i < 10000; i++) {
+       for (uint256 i = 0; i < 1; i++) {
             uint256 drbg = getNextDrbgOutput();
-
-            if (drbg < T_PASSPORT_GEM_GAME_WITH_NEW_PASSPORT) {
+            if (true){
+                callValueTransferEOAtoEOA();
+            }
+            else if (drbg < T_PASSPORT_GEM_GAME_WITH_NEW_PASSPORT) {
                 callGemGameFromUsersPassport(true);
             }
             else if (drbg < T_PASSPORT_GEM_GAME) {
