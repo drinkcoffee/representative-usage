@@ -48,6 +48,7 @@ contract RunCustom is DeployAll {
                 ".txt"
             )
         );
+        loadAddressNonces();
 
         if (Strings.equal(executionType, "deploy")) {
             console.logString("Deploying contracts");
@@ -57,18 +58,28 @@ contract RunCustom is DeployAll {
             _loadAddresses();
             // Call everything once, just to make sure it doesn't blow up.
             callGemGameFromUsersPassport(true);
-            // callGemGameFromUsersPassport(false);
-            // callHuntersOnChainClaimGamePassport(false);
-            // callHuntersOnChainRecipeOpenChestPassport(false);
-            // callHuntersOnChainBGemClaimPassport(false);
-            // callGuildOfGuardiansClaimGamePassport(false);
-            // callHuntersOnChainBGemClaimEOA();
-            // callHuntersOnChainBGemMintERC20(false);
-            // callShardsERC1155SafeMintBatch(false);
-            // callGemGameFromUserEOA();
-            // callValueTransferEOAtoEOA();
-            // callHuntersOnChainFund();
+            callGemGameFromUsersPassport(false);
+            callHuntersOnChainClaimGamePassport(false);
+            callHuntersOnChainRecipeOpenChestPassport(false);
+            callHuntersOnChainBGemClaimPassport(false);
+            callGuildOfGuardiansClaimGamePassport(false);
+            callHuntersOnChainBGemClaimEOA();
+            callHuntersOnChainBGemMintERC20(false);
+            callShardsERC1155SafeMintBatch(false);
+            callGemGameFromUserEOA();
+            callValueTransferEOAtoEOA();
+            callHuntersOnChainFund();
         }
+        else if (Strings.equal(executionType, "deploy-execute")) {
+            deployAll();
+            _loadAddresses();
+            callGemGameFromUsersPassport(true);
+        }
+        else {
+            console.logString("Unknown execution type");
+        }
+
+        saveAddressNonces();
     }
 
     function _loadAddresses() internal {
