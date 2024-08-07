@@ -298,7 +298,14 @@ contract ChainInfrastructure is Globals, ImmutableSeaportCreation {
 
 
     function savePassportPlayerMagicToFile() public{
-        string memory passportPlayerMagicPath = "./temp/passportPlayerMagic.txt";
+        // string memory passportPlayerMagicPath = "./temp/passportPlayerMagic.txt";
+        string memory passportPlayerMagicPath = string(abi.encodePacked(
+            "./temp/passportPlayerMagic-",
+            RUN_NAME,
+            "-",
+            treasuryAddress,
+            ".txt"
+        ));
         vm.writeFile(passportPlayerMagicPath, "");
         for (uint256 i = 0; i < passportPlayersMagic.length; i++) {
             vm.writeLine(passportPlayerMagicPath, Strings.toHexString(uint160(passportPlayersMagic[i])));
@@ -307,7 +314,14 @@ contract ChainInfrastructure is Globals, ImmutableSeaportCreation {
     }
 
     function loadPassportPlayerMagicFromFile() public{
-        string memory passportPlayerMagicPath = "./temp/passportPlayerMagic.txt";
+        // string memory passportPlayerMagicPath = "./temp/passportPlayerMagic.txt";
+        string memory passportPlayerMagicPath = string(abi.encodePacked(
+            "./temp/passportPlayerMagic-",
+            RUN_NAME,
+            "-",
+            treasuryAddress,
+            ".txt"
+        ));
         if (vm.exists(passportPlayerMagicPath)) {
             // read line by line and add to passportPlayersMagic
             string memory line = vm.readLine(passportPlayerMagicPath);
