@@ -34,21 +34,25 @@ import {GuildOfGuardiansClaimGame} from "../src/guild-of-guardians/GuildOfGuardi
 
 contract RunCustom is DeployAll {
     uint256 _treasuryPKey = vm.envUint("ACCOUNT_PVT_KEY");
-    address public treasury;
+
     string public executionType = vm.envString("EXECUTION_TYPE");
     function run() public override {
         treasuryPKey = _treasuryPKey;
-        treasury = vm.addr(_treasuryPKey);
+        treasuryAddress = Strings.toHexString(
+            uint160(vm.addr(_treasuryPKey)),
+            20
+        );
         path = string(
             abi.encodePacked(
                 "./temp/addresses-and-keys-",
-                Strings.toHexString(treasury),
+                treasuryAddress,
                 "-",
                 RUN_NAME,
                 ".txt"
             )
         );
         loadAddressNonces();
+        loadPassportPlayerMagicFromFile();
 
         if (Strings.equal(executionType, "deploy")) {
             console.logString("Deploying contracts");
@@ -69,17 +73,16 @@ contract RunCustom is DeployAll {
             callGemGameFromUserEOA();
             callValueTransferEOAtoEOA();
             callHuntersOnChainFund();
-        }
-        else if (Strings.equal(executionType, "deploy-execute")) {
+        } else if (Strings.equal(executionType, "deploy-execute")) {
             deployAll();
             _loadAddresses();
             callGemGameFromUsersPassport(true);
-        }
-        else {
+        } else {
             console.logString("Unknown execution type");
         }
 
         saveAddressNonces();
+        savePassportPlayerMagicToFile();
     }
 
     function _loadAddresses() internal {
@@ -261,11 +264,49 @@ contract RunCustom is DeployAll {
             "EIP712Claim(uint256 amount,address wallet,uint48 gameId,uint256 nonce)"
         );
 
+    function _loadBGEMNonceFromFile(address _cfa) internal {
+        string memory noncePath = string(
+            abi.encodePacked(
+                "./temp/bgemnonce-",
+                Strings.toHexString(uint160(_cfa), 20),
+                "-",
+                RUN_NAME,
+                "-",
+                treasuryAddress,
+                ".txt"
+            )
+        );
+        string memory nonceStr = "0x0";
+        if (vm.exists(noncePath)) {
+            nonceStr = vm.readFile(noncePath);
+        }
+        if (bytes(nonceStr).length > 0) {
+            bgemClaimNonces[_cfa] = uint256(vm.parseUint(nonceStr));
+        }
+    }
+
+    function _writeBGEMNonceToFile(address _cfa) internal {
+        string memory noncePath = string(
+            abi.encodePacked(
+                "./temp/bgemnonce-",
+                Strings.toHexString(uint160(_cfa), 20),
+                "-",
+                RUN_NAME,
+                "-",
+                treasuryAddress,
+                ".txt"
+            )
+        );
+        vm.writeFile(noncePath, Strings.toHexString(bgemClaimNonces[_cfa]));
+    }
+
     function createSignedBGemClaim(
         address _wallet
     ) private returns (BgemClaim.EIP712Claim memory, bytes memory) {
+        _loadBGEMNonceFromFile(_wallet);
         uint256 nonce = bgemClaimNonces[_wallet];
         bgemClaimNonces[_wallet] = nonce + 1;
+        _writeBGEMNonceToFile(_wallet);
         BgemClaim.EIP712Claim memory claim = createBGemClaim(_wallet, nonce);
 
         bytes32 structHash = huntersOnChainEIP712._hashTypedDataV4(
@@ -328,7 +369,7 @@ contract RunCustom is DeployAll {
         //console.log("Before call1: Balanace of %s is %i", playerCfa, bgemErc20.balanceOf(playerCfa));
         // For some non-obvious reason, the simlation fails with this conditional logic.
         //if (bgemErc20.balanceOf(playerCfa) < 1000 gwei) {
-        vm.startBroadcast(huntersOnChainMinter);
+        vm.startBroadcast(huntersOnChainMinterPKey);
         bgemErc20.mint(playerCfa, 1003 gwei);
         vm.stopBroadcast();
         //}
@@ -385,7 +426,7 @@ contract RunCustom is DeployAll {
             for (uint256 i = 0; i < HUNTERS_ON_CHAIN_NEW_USERS_PER_TX; i++) {
                 recipients[i] = payable(address(uint160(val + i)));
             }
-            vm.startBroadcast(huntersOnChainMinter);
+            vm.startBroadcast(huntersOnChainMinterPKey);
             huntersOnChainFund.fund{value: totalAmount}(recipients, amounts);
             vm.stopBroadcast();
         }

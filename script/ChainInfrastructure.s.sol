@@ -276,7 +276,6 @@ contract ChainInfrastructure is Globals, ImmutableSeaportCreation {
             "passport player",
             newPassport++
         );
-        console.logString(string(userStr));
         (address userMagic, uint256 userPKey) = makeAddrAndKey(string(userStr));
         passportPlayersMagic.push(userMagic);
         passportPlayersMagicPKey.push(userPKey);
@@ -295,6 +294,35 @@ contract ChainInfrastructure is Globals, ImmutableSeaportCreation {
             passportPlayersMagic[currentPassportPlayer],
             passportPlayersMagicPKey[currentPassportPlayer]
         );
+    }
+
+
+    function savePassportPlayerMagicToFile() public{
+        string memory passportPlayerMagicPath = "./temp/passportPlayerMagic.txt";
+        vm.writeFile(passportPlayerMagicPath, "");
+        for (uint256 i = 0; i < passportPlayersMagic.length; i++) {
+            vm.writeLine(passportPlayerMagicPath, Strings.toHexString(uint160(passportPlayersMagic[i])));
+            vm.writeLine(passportPlayerMagicPath, Strings.toHexString(passportPlayersMagicPKey[i]));
+        }
+    }
+
+    function loadPassportPlayerMagicFromFile() public{
+        string memory passportPlayerMagicPath = "./temp/passportPlayerMagic.txt";
+        if (vm.exists(passportPlayerMagicPath)) {
+            // read line by line and add to passportPlayersMagic
+            string memory line = vm.readLine(passportPlayerMagicPath);
+            while (bytes(line).length > 0) {
+                address userMagic = vm.parseAddress(line);
+                line = vm.readLine(passportPlayerMagicPath);
+                uint256 userPKey = vm.parseUint(line);
+                passportPlayersMagic.push(userMagic);
+                passportPlayersMagicPKey.push(userPKey);
+                line = vm.readLine(passportPlayerMagicPath);
+            }
+            newPassport = passportPlayersMagic.length;
+            console.logString("Loaded passportPlayersMagic from file, newPassport: ");
+            console.logUint(newPassport);
+        }
     }
 
     // ****************************************************
@@ -502,6 +530,8 @@ contract ChainInfrastructure is Globals, ImmutableSeaportCreation {
                 Strings.toHexString(uint160(_cfa), 20),
                 "-",
                 RUN_NAME,
+                "-",
+                treasuryAddress,
                 ".txt"
             )
         );
@@ -515,7 +545,12 @@ contract ChainInfrastructure is Globals, ImmutableSeaportCreation {
     }
 
     function loadAddressNonces() public {
-        string memory nonceAddressesPath = "./temp/noncesAddresses.txt";
+        // string memory nonceAddressesPath = "./temp/noncesAddresses.txt";
+        string memory nonceAddressesPath = string(abi.encodePacked(
+            "./temp/noncesAddresses-",
+            treasuryAddress,
+            ".txt"
+        ));
         if (vm.exists(nonceAddressesPath)) {
             // read line by line and add to noncesAddresses
             string memory line = vm.readLine(nonceAddressesPath);
@@ -529,7 +564,11 @@ contract ChainInfrastructure is Globals, ImmutableSeaportCreation {
     }
 
     function saveAddressNonces() public {
-        string memory nonceAddressesPath = "./temp/noncesAddresses.txt";
+        string memory nonceAddressesPath = string(abi.encodePacked(
+            "./temp/noncesAddresses-",
+            treasuryAddress,
+            ".txt"
+        ));
         string memory noncePath;
         vm.writeFile(nonceAddressesPath, "");
         for (uint256 i = 0; i < noncesAddresses.length; i++) {
@@ -539,6 +578,8 @@ contract ChainInfrastructure is Globals, ImmutableSeaportCreation {
                     Strings.toHexString(uint160(noncesAddresses[i]), 20),
                     "-",
                     RUN_NAME,
+                    "-",
+                    treasuryAddress,
                     ".txt"
                 )
             );

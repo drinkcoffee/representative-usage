@@ -9,7 +9,7 @@ import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 
 contract Globals is Script {
     string public constant RUN_NAME = "0";
-
+    string public treasuryAddress;
 
     string public path = "./temp/addresses-and-keys.txt";
 
