@@ -56,10 +56,15 @@ contract RunCustom is DeployAll {
         loadAddressNonces();
         loadPassportPlayerMagicFromFile();
 
-        if (Strings.equal(executionType, "deploy")) {
+        if (Strings.equal(executionType, "fund-admin")) {
+            console.logString("Funding Admin");
+            vm.broadcast(treasuryPKey);
+            payable(admin).transfer(20 ether);
+        } else if (Strings.equal(executionType, "deploy")) {
             console.logString("Deploying contracts");
             deployAll();
-        } else if (Strings.equal(executionType, "execute")) {
+        } 
+        else if (Strings.equal(executionType, "execute")) {
             console.logString("Executing transactions");
             if (!vm.isFile(path)) {
                 console.logString("ERROR: No addresses-and-keys file found");
