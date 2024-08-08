@@ -85,7 +85,7 @@ contract DeployAll is Applications {
         }
 
         (root, rootPKey) = makeAddrAndKey(
-            string(abi.encodePacked(_runName, "root"))
+            string(abi.encodePacked(treasuryAddress, _runName, "root"))
         );
         vm.writeLine(path, "Root Address");
         vm.writeLine(path, Strings.toHexString(root));
@@ -100,7 +100,7 @@ contract DeployAll is Applications {
         vm.stopBroadcast();
 
         (deployer, deployerPKey) = makeAddrAndKey(
-            string(abi.encodePacked(_runName, "deployer"))
+            string(abi.encodePacked(treasuryAddress, _runName, "deployer"))
         );
         vm.writeLine(path, "Deployer Address");
         vm.writeLine(path, Strings.toHexString(deployer));
@@ -115,7 +115,7 @@ contract DeployAll is Applications {
         vm.stopBroadcast();
 
         (admin, adminPKey) = makeAddrAndKey(
-            string(abi.encodePacked(_runName, "admin"))
+            string(abi.encodePacked(treasuryAddress, _runName, "admin"))
         );
         vm.writeLine(path, "Admin Address");
         vm.writeLine(path, Strings.toHexString(admin));
@@ -130,7 +130,7 @@ contract DeployAll is Applications {
         vm.stopBroadcast();
 
         (relayer, relayerPKey) = makeAddrAndKey(
-            string(abi.encodePacked(_runName, "relayer"))
+            string(abi.encodePacked(treasuryAddress, _runName, "relayer"))
         );
         vm.writeLine(path, "Relayer Address");
         vm.writeLine(path, Strings.toHexString(relayer));
@@ -142,7 +142,9 @@ contract DeployAll is Applications {
 
         // Off-chain signing, so no native tokens needed.
         (passportSigner, passportSignerPKey) = makeAddrAndKey(
-            string(abi.encodePacked(_runName, "passportSigner"))
+            string(
+                abi.encodePacked(treasuryAddress, _runName, "passportSigner")
+            )
         );
         vm.writeLine(path, "PassportSigner Address");
         vm.writeLine(path, Strings.toHexString(passportSigner));
@@ -150,7 +152,13 @@ contract DeployAll is Applications {
         vm.writeLine(path, Strings.toHexString(passportSignerPKey));
 
         (huntersOnChainMinter, huntersOnChainMinterPKey) = makeAddrAndKey(
-            string(abi.encodePacked(_runName, "huntersOnChainMinter"))
+            string(
+                abi.encodePacked(
+                    treasuryAddress,
+                    _runName,
+                    "huntersOnChainMinter"
+                )
+            )
         );
         vm.writeLine(path, "HuntersOnChainMinter Address");
         vm.writeLine(path, Strings.toHexString(huntersOnChainMinter));
@@ -165,7 +173,13 @@ contract DeployAll is Applications {
             huntersOnChainOffchainSigner,
             huntersOnChainOffchainSignerPKey
         ) = makeAddrAndKey(
-            string(abi.encodePacked(_runName, "huntersOnChainOffchainSigner"))
+            string(
+                abi.encodePacked(
+                    treasuryAddress,
+                    _runName,
+                    "huntersOnChainOffchainSigner"
+                )
+            )
         );
         vm.writeLine(path, "HuntersOnChainOffchainSigner Address");
         vm.writeLine(path, Strings.toHexString(huntersOnChainOffchainSigner));

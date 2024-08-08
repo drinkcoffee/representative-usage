@@ -274,6 +274,8 @@ contract ChainInfrastructure is Globals, ImmutableSeaportCreation {
         // Deploye a new passport contract.
         bytes memory userStr = abi.encodePacked(
             "passport player",
+            RUN_NAME,
+            treasuryAddress,
             newPassport++
         );
         (address userMagic, uint256 userPKey) = makeAddrAndKey(string(userStr));

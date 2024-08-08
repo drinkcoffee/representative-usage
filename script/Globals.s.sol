@@ -8,7 +8,7 @@ import {console} from "forge-std/Test.sol";
 import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 
 contract Globals is Script {
-    string public constant RUN_NAME = "0";
+    string public RUN_NAME = "0";
     string public treasuryAddress;
 
     string public path = "./temp/addresses-and-keys.txt";
@@ -25,8 +25,6 @@ contract Globals is Script {
     // multisigs used for different adminstration groups.
     address public admin;
     uint256 public adminPKey;
-
-
 
     int256 public PASSPORT_GEM_NEW_PASSPORT = 0;
     int256 public PASSPORT_GEM_GAME = 0;
@@ -46,7 +44,6 @@ contract Globals is Script {
     int256 public EOA_BLACKPASS = 0;
     int256 public HUNTERS_ON_CHAIN = 0;
 
-
     // ***************************************************
     // Code below manages accounts
     // ***************************************************
@@ -56,10 +53,17 @@ contract Globals is Script {
     uint256[] playersPKeys;
     uint256 public poor; // Index for creating EOAs that don't have any native tokens.
 
-    function distributeNativeTokenToGamePlayers(string memory _runName) internal {
+    function distributeNativeTokenToGamePlayers(
+        string memory _runName
+    ) internal {
         vm.writeLine(path, "Distributing value to user EOAs:");
         for (uint256 i = 0; i < NUM_PLAYERS; i++) {
-            bytes memory userStr = abi.encodePacked("player", _runName, i);
+            bytes memory userStr = abi.encodePacked(
+                "player",
+                _runName,
+                treasuryAddress,
+                i
+            );
             (address user, uint256 userPKey) = makeAddrAndKey(string(userStr));
             players.push(user);
             vm.writeLine(path, Strings.toHexString(user));
@@ -73,7 +77,12 @@ contract Globals is Script {
     function loadUserEOAs(string memory _runName) internal {
         vm.readLine(path); // Discard line:Distributing value to user EOAs:
         for (uint256 i = 0; i < NUM_PLAYERS; i++) {
-            bytes memory userStr = abi.encodePacked("player", _runName, i);
+            bytes memory userStr = abi.encodePacked(
+                "player",
+                _runName,
+                treasuryAddress,
+                i
+            );
             (address user, uint256 userPKey) = makeAddrAndKey(string(userStr));
             players.push(user);
             vm.readLine(path); // Discard line: <user address>
@@ -81,35 +90,51 @@ contract Globals is Script {
         }
     }
 
-    function getEOAWithNativeTokens() internal returns(address, uint256) {
+    function getEOAWithNativeTokens() internal returns (address, uint256) {
         currentPlayer = (currentPlayer + 1) % NUM_PLAYERS;
         return (players[currentPlayer], playersPKeys[currentPlayer]);
     }
 
-    function getEOAWithNoNativeTokens() internal returns(address) {
+    function getEOAWithNoNativeTokens() internal returns (address) {
         bytes memory userStr = abi.encodePacked("poorplayer", poor++);
         return makeAddr(string(userStr));
     }
 
     function loadEnvironment() internal {
         // Load the environment
+        RUN_NAME = vm.envString("RUN_NAME");
         PASSPORT_GEM_NEW_PASSPORT = vm.envInt("PASSPORT_GEM_NEW_PASSPORT");
         PASSPORT_GEM_GAME = vm.envInt("PASSPORT_GEM_GAME");
-        PASSPORT_HUNTERS_ON_CHAIN_CLAIM_GAME = vm.envInt("PASSPORT_HUNTERS_ON_CHAIN_CLAIM_GAME");
-        PASSPORT_HUNTERS_ON_CHAIN_RECIPE = vm.envInt("PASSPORT_HUNTERS_ON_CHAIN_RECIPE");
-        PASSPORT_HUNTERS_ON_CHAIN_BITGEM = vm.envInt("PASSPORT_HUNTERS_ON_CHAIN_BITGEM");
-        PASSPORT_GUILD_OF_GUARDIANS_CLAIM = vm.envInt("PASSPORT_GUILD_OF_GUARDIANS_CLAIM");
+        PASSPORT_HUNTERS_ON_CHAIN_CLAIM_GAME = vm.envInt(
+            "PASSPORT_HUNTERS_ON_CHAIN_CLAIM_GAME"
+        );
+        PASSPORT_HUNTERS_ON_CHAIN_RECIPE = vm.envInt(
+            "PASSPORT_HUNTERS_ON_CHAIN_RECIPE"
+        );
+        PASSPORT_HUNTERS_ON_CHAIN_BITGEM = vm.envInt(
+            "PASSPORT_HUNTERS_ON_CHAIN_BITGEM"
+        );
+        PASSPORT_GUILD_OF_GUARDIANS_CLAIM = vm.envInt(
+            "PASSPORT_GUILD_OF_GUARDIANS_CLAIM"
+        );
         PASSPORT_SPACETREK_CLAIM = vm.envInt("PASSPORT_SPACETREK_CLAIM");
         PASSPORT_SPACENATION_COIN = vm.envInt("PASSPORT_SPACENATION_COIN");
-        EOA_HUNTERS_ON_CHAIN_BGEM_CLAIM = vm.envInt("EOA_HUNTERS_ON_CHAIN_BGEM_CLAIM");
-        EOA_HUNTERS_ON_CHAIN_RELAYER_MINT = vm.envInt("EOA_HUNTERS_ON_CHAIN_RELAYER_MINT");
-        EOA_HUNTERS_ON_CHAIN_RELAYER_SHARD_MINT = vm.envInt("EOA_HUNTERS_ON_CHAIN_RELAYER_SHARD_MINT");
+        EOA_HUNTERS_ON_CHAIN_BGEM_CLAIM = vm.envInt(
+            "EOA_HUNTERS_ON_CHAIN_BGEM_CLAIM"
+        );
+        EOA_HUNTERS_ON_CHAIN_RELAYER_MINT = vm.envInt(
+            "EOA_HUNTERS_ON_CHAIN_RELAYER_MINT"
+        );
+        EOA_HUNTERS_ON_CHAIN_RELAYER_SHARD_MINT = vm.envInt(
+            "EOA_HUNTERS_ON_CHAIN_RELAYER_SHARD_MINT"
+        );
         EOA_GEM_GAME = vm.envInt("EOA_GEM_GAME");
         EOA_VALUE_TRANSFER = vm.envInt("EOA_VALUE_TRANSFER");
-        EOA_BABY_SHARK_UNIVERSE_PROXY = vm.envInt("EOA_BABY_SHARK_UNIVERSE_PROXY");
+        EOA_BABY_SHARK_UNIVERSE_PROXY = vm.envInt(
+            "EOA_BABY_SHARK_UNIVERSE_PROXY"
+        );
         EOA_BABY_SHARK_UNIVERSE = vm.envInt("EOA_BABY_SHARK_UNIVERSE");
         EOA_BLACKPASS = vm.envInt("EOA_BLACKPASS");
         HUNTERS_ON_CHAIN = vm.envInt("HUNTERS_ON_CHAIN");
     }
-
 }
