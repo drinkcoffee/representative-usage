@@ -13,7 +13,7 @@ import {EIP712WithChanges} from "./EIP712WithChanges.sol";
 
 // Immutable Contracts repo
 import {ImmutableERC20MinterBurnerPermit} from "../src/im-contracts/token/erc20/preset/ImmutableERC20MinterBurnerPermit.sol";
-import {ImmutableERC1155} from '../src/im-contracts/token/erc1155/preset/ImmutableERC1155.sol';
+import {ImmutableERC1155} from "../src/im-contracts/token/erc1155/preset/ImmutableERC1155.sol";
 
 // Gem Game
 import {GemGame} from "../src/im-contracts/games/gems/GemGame.sol";
@@ -43,8 +43,18 @@ contract DeployAll is Applications {
         if (vm.exists(path)) {
             vm.removeFile(path);
         }
-        vm.writeLine(path, ("Execution Start *********************************"));
-        console.logString(string(abi.encodePacked("Deployment address Information logged to: ", path)));
+        vm.writeLine(
+            path,
+            ("Execution Start *********************************")
+        );
+        console.logString(
+            string(
+                abi.encodePacked(
+                    "Deployment address Information logged to: ",
+                    path
+                )
+            )
+        );
 
         setUpAccounts(treasuryPKey, runName);
         distributeNativeTokenToGamePlayers(runName);
@@ -60,7 +70,10 @@ contract DeployAll is Applications {
         vm.closeFile(path);
     }
 
-    function setUpAccounts(uint256 _treasuryPKey, string memory _runName) internal {
+    function setUpAccounts(
+        uint256 _treasuryPKey,
+        string memory _runName
+    ) internal {
         vm.writeLine(path, "Run Name");
         vm.writeLine(path, _runName);
         console.logString(string(abi.encodePacked("Run Name: ", _runName)));
@@ -72,7 +85,9 @@ contract DeployAll is Applications {
             revert("Treasury has 0 native gas token");
         }
 
-        (root, rootPKey) = makeAddrAndKey(string(abi.encodePacked(_runName, "root")));
+        (root, rootPKey) = makeAddrAndKey(
+            string(abi.encodePacked(_runName, "root"))
+        );
         vm.writeLine(path, "Root Address");
         vm.writeLine(path, Strings.toHexString(root));
         vm.writeLine(path, "Root PKey");
@@ -85,7 +100,9 @@ contract DeployAll is Applications {
         }
         vm.stopBroadcast();
 
-        (deployer, deployerPKey) = makeAddrAndKey(string(abi.encodePacked(_runName, "deployer")));
+        (deployer, deployerPKey) = makeAddrAndKey(
+            string(abi.encodePacked(_runName, "deployer"))
+        );
         vm.writeLine(path, "Deployer Address");
         vm.writeLine(path, Strings.toHexString(deployer));
         vm.writeLine(path, "Deployer PKey");
@@ -98,7 +115,9 @@ contract DeployAll is Applications {
         }
         vm.stopBroadcast();
 
-        (admin, adminPKey) = makeAddrAndKey(string(abi.encodePacked(_runName, "admin")));
+        (admin, adminPKey) = makeAddrAndKey(
+            string(abi.encodePacked(_runName, "admin"))
+        );
         vm.writeLine(path, "Admin Address");
         vm.writeLine(path, Strings.toHexString(admin));
         vm.writeLine(path, "Admin PKey");
@@ -111,7 +130,9 @@ contract DeployAll is Applications {
         }
         vm.stopBroadcast();
 
-        (relayer, relayerPKey) = makeAddrAndKey(string(abi.encodePacked(_runName, "relayer")));
+        (relayer, relayerPKey) = makeAddrAndKey(
+            string(abi.encodePacked(_runName, "relayer"))
+        );
         vm.writeLine(path, "Relayer Address");
         vm.writeLine(path, Strings.toHexString(relayer));
         vm.writeLine(path, "Relayer PKey");
@@ -121,13 +142,17 @@ contract DeployAll is Applications {
         vm.stopBroadcast();
 
         // Off-chain signing, so no native tokens needed.
-        (passportSigner, passportSignerPKey) = makeAddrAndKey(string(abi.encodePacked(_runName, "passportSigner")));
+        (passportSigner, passportSignerPKey) = makeAddrAndKey(
+            string(abi.encodePacked(_runName, "passportSigner"))
+        );
         vm.writeLine(path, "PassportSigner Address");
         vm.writeLine(path, Strings.toHexString(passportSigner));
         vm.writeLine(path, "PassportSigner PKey");
         vm.writeLine(path, Strings.toHexString(passportSignerPKey));
 
-        (huntersOnChainMinter, huntersOnChainMinterPKey) = makeAddrAndKey(string(abi.encodePacked(_runName, "huntersOnChainMinter")));
+        (huntersOnChainMinter, huntersOnChainMinterPKey) = makeAddrAndKey(
+            string(abi.encodePacked(_runName, "huntersOnChainMinter"))
+        );
         vm.writeLine(path, "HuntersOnChainMinter Address");
         vm.writeLine(path, Strings.toHexString(huntersOnChainMinter));
         vm.writeLine(path, "HuntersOnChainMinter PKey");
@@ -137,11 +162,19 @@ contract DeployAll is Applications {
         vm.stopBroadcast();
 
         // Off-chain signing, so no native tokens needed.
-        (huntersOnChainOffchainSigner, huntersOnChainOffchainSignerPKey) = makeAddrAndKey(string(abi.encodePacked(_runName, "huntersOnChainOffchainSigner")));
+        (
+            huntersOnChainOffchainSigner,
+            huntersOnChainOffchainSignerPKey
+        ) = makeAddrAndKey(
+            string(abi.encodePacked(_runName, "huntersOnChainOffchainSigner"))
+        );
         vm.writeLine(path, "HuntersOnChainOffchainSigner Address");
         vm.writeLine(path, Strings.toHexString(huntersOnChainOffchainSigner));
         vm.writeLine(path, "HuntersOnChainOffchainSigner PKey");
-        vm.writeLine(path, Strings.toHexString(huntersOnChainOffchainSignerPKey));
+        vm.writeLine(
+            path,
+            Strings.toHexString(huntersOnChainOffchainSignerPKey)
+        );
     }
 
     function installGemGame() private {
@@ -165,7 +198,14 @@ contract DeployAll is Applications {
         symbol = "BGEM";
         maxSupply = 1000000000000000000 ether;
         vm.startBroadcast(deployerPKey);
-        bgemErc20 = new ImmutableERC20MinterBurnerPermit(admin, address(huntersOnChainRelayer), admin, name, symbol, maxSupply);
+        bgemErc20 = new ImmutableERC20MinterBurnerPermit(
+            admin,
+            address(huntersOnChainRelayer),
+            admin,
+            name,
+            symbol,
+            maxSupply
+        );
         vm.stopBroadcast();
         vm.startBroadcast(adminPKey);
         bgemErc20.grantMinterRole(huntersOnChainMinter);
@@ -176,30 +216,71 @@ contract DeployAll is Applications {
         string memory baseURIe = "https://api-imx.boomland.io/api/e/";
         string memory contractURIe = "https://api-imx.boomland.io";
         vm.startBroadcast(deployerPKey);
-        huntersOnChainEquipments = new Equipments(admin, admin, admin, admin, 1000, baseURIe, contractURIe, address(royaltyAllowlist));
+        huntersOnChainEquipments = new Equipments(
+            admin,
+            admin,
+            admin,
+            admin,
+            1000,
+            baseURIe,
+            contractURIe,
+            address(royaltyAllowlist)
+        );
         vm.stopBroadcast();
         vm.writeLine(path, "huntersOnChainEquipments deployed to address");
-        vm.writeLine(path, Strings.toHexString(address(huntersOnChainEquipments)));
+        vm.writeLine(
+            path,
+            Strings.toHexString(address(huntersOnChainEquipments))
+        );
 
         string memory baseURIa = "https://api-imx.boomland.io/api/s/";
         string memory contractURIa = "https://api-imx.boomland.io";
         vm.startBroadcast(deployerPKey);
-        huntersOnChainArtifacts = new Artifacts(admin, admin, admin, admin, 1000, baseURIa, contractURIa, address(royaltyAllowlist));
+        huntersOnChainArtifacts = new Artifacts(
+            admin,
+            admin,
+            admin,
+            admin,
+            1000,
+            baseURIa,
+            contractURIa,
+            address(royaltyAllowlist)
+        );
         vm.stopBroadcast();
         vm.writeLine(path, "huntersOnChainArtifacts deployed to address");
-        vm.writeLine(path, Strings.toHexString(address(huntersOnChainArtifacts)));
+        vm.writeLine(
+            path,
+            Strings.toHexString(address(huntersOnChainArtifacts))
+        );
 
         string memory baseURIs = "https://api-imx.boomland.io/api/s/{id}";
         string memory contractURIs = "https://api-imx.boomland.io/api/v1/shard";
         vm.startBroadcast(deployerPKey);
-        huntersOnChainShards = new Shards(admin, address(huntersOnChainRelayer), admin, admin, 1000, baseURIs, contractURIs, address(royaltyAllowlist));
+        huntersOnChainShards = new Shards(
+            admin,
+            address(huntersOnChainRelayer),
+            admin,
+            admin,
+            1000,
+            baseURIs,
+            contractURIs,
+            address(royaltyAllowlist)
+        );
         vm.stopBroadcast();
         vm.writeLine(path, "huntersOnChainShards deployed to address");
         vm.writeLine(path, Strings.toHexString(address(huntersOnChainShards)));
 
         vm.startBroadcast(deployerPKey);
-        huntersOnChainClaim = new BgemClaim(admin, IBgem(address(bgemErc20)), huntersOnChainOffchainSigner);
-        huntersOnChainEIP712 = new EIP712WithChanges("Boomland Claim", "1", address(huntersOnChainClaim));
+        huntersOnChainClaim = new BgemClaim(
+            admin,
+            IBgem(address(bgemErc20)),
+            huntersOnChainOffchainSigner
+        );
+        huntersOnChainEIP712 = new EIP712WithChanges(
+            "Boomland Claim",
+            "1",
+            address(huntersOnChainClaim)
+        );
         vm.stopBroadcast();
         vm.startBroadcast(huntersOnChainMinterPKey);
         bgemErc20.mint(address(huntersOnChainClaim), 1000000 ether);
@@ -210,20 +291,39 @@ contract DeployAll is Applications {
         vm.writeLine(path, Strings.toHexString(address(huntersOnChainEIP712)));
 
         vm.startBroadcast(deployerPKey);
-        huntersOnChainClaimGame = new HuntersOnChainClaimGame(admin, admin, admin);
+        huntersOnChainClaimGame = new HuntersOnChainClaimGame(
+            admin,
+            admin,
+            admin
+        );
         vm.writeLine(path, "huntersOnChainClaimGame deployed to address");
-        vm.writeLine(path, Strings.toHexString(address(huntersOnChainClaimGame)));
+        vm.writeLine(
+            path,
+            Strings.toHexString(address(huntersOnChainClaimGame))
+        );
         vm.stopBroadcast();
 
-        Recipe.IChestConfig memory chestOneConfig = Recipe.IChestConfig(170000, 0, HUNTERS_ON_CHAIN_COST, true);
+        Recipe.IChestConfig memory chestOneConfig = Recipe.IChestConfig(
+            170000,
+            0,
+            HUNTERS_ON_CHAIN_COST,
+            true
+        );
         vm.startBroadcast(deployerPKey);
         huntersOnChainRecipe = new Recipe(
-            uint32(block.chainid), huntersOnChainOffchainSigner, admin, 
-            IBgem2(address(bgemErc20)), IBoom(address(0)),  
-            IMintable1155(address(huntersOnChainArtifacts)), 
-            IMintable1155(address(huntersOnChainEquipments)), 
-            IMintable1155(address(huntersOnChainShards)));
-        huntersOnChainRecipe.setChestConfig(HUNTERS_ON_CHAIN_CHEST1, chestOneConfig);
+            uint32(block.chainid),
+            huntersOnChainOffchainSigner,
+            admin,
+            IBgem2(address(bgemErc20)),
+            IBoom(address(0)),
+            IMintable1155(address(huntersOnChainArtifacts)),
+            IMintable1155(address(huntersOnChainEquipments)),
+            IMintable1155(address(huntersOnChainShards))
+        );
+        huntersOnChainRecipe.setChestConfig(
+            HUNTERS_ON_CHAIN_CHEST1,
+            chestOneConfig
+        );
         vm.stopBroadcast();
         vm.writeLine(path, "huntersOnChainRecipe deployed to address");
         vm.writeLine(path, Strings.toHexString(address(huntersOnChainRecipe)));
@@ -235,13 +335,18 @@ contract DeployAll is Applications {
         vm.writeLine(path, Strings.toHexString(address(huntersOnChainFund)));
     }
 
-
     function installGuildOfGuardians() private {
         vm.startBroadcast(deployerPKey);
-        guildOfGuardiansClaimGame = new GuildOfGuardiansClaimGame(admin, admin, admin);
+        guildOfGuardiansClaimGame = new GuildOfGuardiansClaimGame(
+            admin,
+            admin,
+            admin
+        );
         vm.writeLine(path, "guildOfGuardiansClaimGame deployed to address");
-        vm.writeLine(path, Strings.toHexString(address(guildOfGuardiansClaimGame)));
+        vm.writeLine(
+            path,
+            Strings.toHexString(address(guildOfGuardiansClaimGame))
+        );
         vm.stopBroadcast();
     }
-
 }

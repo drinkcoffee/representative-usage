@@ -10,7 +10,6 @@ import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 contract Globals is Script {
     string public constant RUN_NAME = "0";
 
-
     string public path = "./temp/addresses-and-keys.txt";
 
     // Distributor of native token.
@@ -26,9 +25,6 @@ contract Globals is Script {
     address public admin;
     uint256 public adminPKey;
 
-
-
-
     // ***************************************************
     // Code below manages accounts
     // ***************************************************
@@ -38,7 +34,9 @@ contract Globals is Script {
     uint256[] playersPKeys;
     uint256 public poor; // Index for creating EOAs that don't have any native tokens.
 
-    function distributeNativeTokenToGamePlayers(string memory _runName) internal {
+    function distributeNativeTokenToGamePlayers(
+        string memory _runName
+    ) internal {
         vm.writeLine(path, "Distributing value to user EOAs:");
         for (uint256 i = 0; i < NUM_PLAYERS; i++) {
             bytes memory userStr = abi.encodePacked("player", _runName, i);
@@ -63,14 +61,13 @@ contract Globals is Script {
         }
     }
 
-    function getEOAWithNativeTokens() internal returns(address, uint256) {
+    function getEOAWithNativeTokens() internal returns (address, uint256) {
         currentPlayer = (currentPlayer + 1) % NUM_PLAYERS;
         return (players[currentPlayer], playersPKeys[currentPlayer]);
     }
 
-    function getEOAWithNoNativeTokens() internal returns(address) {
+    function getEOAWithNoNativeTokens() internal returns (address) {
         bytes memory userStr = abi.encodePacked("poorplayer", poor++);
         return makeAddr(string(userStr));
     }
-
 }
