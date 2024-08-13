@@ -570,9 +570,9 @@ contract ChainInfrastructure is Globals, ImmutableSeaportCreation {
             // read line by line and add to noncesAddresses
             string memory line = vm.readLine(nonceAddressesPath);
             while (bytes(line).length > 0) {
-                address cfa = vm.parseAddress(line);
-                noncesAddresses.push(cfa);
-                _loadNonceFromFile(cfa);
+                address cfa1 = vm.parseAddress(line);
+                noncesAddresses.push(cfa1);
+                _loadNonceFromFile(cfa1);
                 line = vm.readLine(nonceAddressesPath);
             }
         }
