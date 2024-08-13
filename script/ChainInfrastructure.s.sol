@@ -56,6 +56,9 @@ contract ChainInfrastructure is Globals, ImmutableSeaportCreation {
     // Passport wallet nonces, based on the counter factual address.
     mapping(address => uint256) nonces;
 
+    // Passport wallet nonces addresses to access all
+    address[] public noncesAddresses;
+
     // Passport wallet.
     Factory private walletFactory;
     MultiCallDeploy private multiCallDeploy;
@@ -271,6 +274,8 @@ contract ChainInfrastructure is Globals, ImmutableSeaportCreation {
         // Deploye a new passport contract.
         bytes memory userStr = abi.encodePacked(
             "passport player",
+            RUN_NAME,
+            treasuryAddress,
             newPassport++
         );
         (address userMagic, uint256 userPKey) = makeAddrAndKey(string(userStr));
@@ -291,6 +296,48 @@ contract ChainInfrastructure is Globals, ImmutableSeaportCreation {
             passportPlayersMagic[currentPassportPlayer],
             passportPlayersMagicPKey[currentPassportPlayer]
         );
+    }
+
+    function savePassportPlayerMagicToFile() public{
+        // string memory passportPlayerMagicPath = "./temp/passportPlayerMagic.txt";
+        string memory passportPlayerMagicPath = string(abi.encodePacked(
+            "./temp/passportPlayerMagic-",
+            RUN_NAME,
+            "-",
+            treasuryAddress,
+            ".txt"
+        ));
+        vm.writeFile(passportPlayerMagicPath, "");
+        for (uint256 i = 0; i < passportPlayersMagic.length; i++) {
+            vm.writeLine(passportPlayerMagicPath, Strings.toHexString(uint160(passportPlayersMagic[i])));
+            vm.writeLine(passportPlayerMagicPath, Strings.toHexString(passportPlayersMagicPKey[i]));
+        }
+    }
+
+    function loadPassportPlayerMagicFromFile() public{
+        // string memory passportPlayerMagicPath = "./temp/passportPlayerMagic.txt";
+        string memory passportPlayerMagicPath = string(abi.encodePacked(
+            "./temp/passportPlayerMagic-",
+            RUN_NAME,
+            "-",
+            treasuryAddress,
+            ".txt"
+        ));
+        if (vm.exists(passportPlayerMagicPath)) {
+            // read line by line and add to passportPlayersMagic
+            string memory line = vm.readLine(passportPlayerMagicPath);
+            while (bytes(line).length > 0) {
+                address userMagic = vm.parseAddress(line);
+                line = vm.readLine(passportPlayerMagicPath);
+                uint256 userPKey = vm.parseUint(line);
+                passportPlayersMagic.push(userMagic);
+                passportPlayersMagicPKey.push(userPKey);
+                line = vm.readLine(passportPlayerMagicPath);
+            }
+            newPassport = passportPlayersMagic.length;
+            console.logString("Loaded passportPlayersMagic from file, newPassport: ");
+            console.logUint(newPassport);
+        }
     }
 
     // ****************************************************
@@ -364,6 +411,7 @@ contract ChainInfrastructure is Globals, ImmutableSeaportCreation {
             address(startupWallet),
             walletSalt
         );
+
         uint256 nonce = getNextNonce(walletCounterFactualAddress);
         bytes32 hashToBeSigned = encodeMetaTransactionsData(
             walletCounterFactualAddress,
@@ -484,9 +532,91 @@ contract ChainInfrastructure is Globals, ImmutableSeaportCreation {
     }
 
     function getNextNonce(address _cfa) private returns (uint256) {
+        _addNonceAddressIfNotExists(_cfa);
         uint256 nonce = nonces[_cfa];
         nonces[_cfa] = nonce + 1;
         return nonce;
+    }
+
+    function _loadNonceFromFile(address _cfa) internal {
+        string memory noncePath = string(
+            abi.encodePacked(
+                "./temp/nonce-",
+                Strings.toHexString(uint160(_cfa), 20),
+                "-",
+                RUN_NAME,
+                "-",
+                treasuryAddress,
+                ".txt"
+            )
+        );
+        string memory nonceStr = "0x0";
+        if (vm.exists(noncePath)) {
+            nonceStr = vm.readFile(noncePath);
+        }
+        if (bytes(nonceStr).length > 0) {
+            nonces[_cfa] = uint256(vm.parseUint(nonceStr));
+        }
+    }
+
+    function loadAddressNonces() public {
+        // string memory nonceAddressesPath = "./temp/noncesAddresses.txt";
+        string memory nonceAddressesPath = string(abi.encodePacked(
+            "./temp/noncesAddresses-",
+            treasuryAddress,
+            ".txt"
+        ));
+        if (vm.exists(nonceAddressesPath)) {
+            // read line by line and add to noncesAddresses
+            string memory line = vm.readLine(nonceAddressesPath);
+            while (bytes(line).length > 0) {
+                address cfa = vm.parseAddress(line);
+                noncesAddresses.push(cfa);
+                _loadNonceFromFile(cfa);
+                line = vm.readLine(nonceAddressesPath);
+            }
+        }
+    }
+
+    function saveAddressNonces() public {
+        string memory nonceAddressesPath = string(abi.encodePacked(
+            "./temp/noncesAddresses-",
+            treasuryAddress,
+            ".txt"
+        ));
+        string memory noncePath;
+        vm.writeFile(nonceAddressesPath, "");
+        for (uint256 i = 0; i < noncesAddresses.length; i++) {
+            noncePath = string(
+                abi.encodePacked(
+                    "./temp/nonce-",
+                    Strings.toHexString(uint160(noncesAddresses[i]), 20),
+                    "-",
+                    RUN_NAME,
+                    "-",
+                    treasuryAddress,
+                    ".txt"
+                )
+            );
+            string memory line = Strings.toHexString(
+                uint160(noncesAddresses[i]),
+                20
+            );
+            vm.writeLine(nonceAddressesPath, line);
+            vm.writeFile(
+                noncePath,
+                Strings.toHexString(nonces[noncesAddresses[i]])
+            );
+        }
+    }
+
+    function _addNonceAddressIfNotExists(address _cfa) internal {
+        for (uint256 i = 0; i < noncesAddresses.length; i++) {
+            if (noncesAddresses[i] == _cfa) {
+                return;
+            }
+        }
+        noncesAddresses.push(_cfa);
     }
 
     function encodeMetaTransactionsData(
