@@ -298,7 +298,6 @@ contract ChainInfrastructure is Globals, ImmutableSeaportCreation {
         );
     }
 
-
     function savePassportPlayerMagicToFile() public{
         // string memory passportPlayerMagicPath = "./temp/passportPlayerMagic.txt";
         string memory passportPlayerMagicPath = string(abi.encodePacked(
@@ -412,7 +411,7 @@ contract ChainInfrastructure is Globals, ImmutableSeaportCreation {
             address(startupWallet),
             walletSalt
         );
-        //here
+
         uint256 nonce = getNextNonce(walletCounterFactualAddress);
         bytes32 hashToBeSigned = encodeMetaTransactionsData(
             walletCounterFactualAddress,

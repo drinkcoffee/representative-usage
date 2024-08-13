@@ -6,16 +6,14 @@ import {console} from "forge-std/Test.sol";
 
 import {ChainInfrastructure} from "./ChainInfrastructure.s.sol";
 
-
 // Open Zeppelin contracts
 import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 // Slightly hacked Open Zeppelin contracts
 import {EIP712WithChanges} from "./EIP712WithChanges.sol";
 
-
 // Immutable Contracts repo
 import {ImmutableERC20MinterBurnerPermit} from "../src/im-contracts/token/erc20/preset/ImmutableERC20MinterBurnerPermit.sol";
-import {ImmutableERC1155} from '../src/im-contracts/token/erc1155/preset/ImmutableERC1155.sol';
+import {ImmutableERC1155} from "../src/im-contracts/token/erc1155/preset/ImmutableERC1155.sol";
 
 // Gem Game
 import {GemGame} from "../src/im-contracts/games/gems/GemGame.sol";
@@ -34,11 +32,10 @@ import {Fund} from "../src/hunters-on-chain/Fund.sol";
 import {GuildOfGuardiansClaimGame} from "../src/guild-of-guardians/GuildOfGuardiansClaimGame.sol";
 
 contract Applications is ChainInfrastructure {
-
     // Gem game
     GemGame public gemGame;
 
-    // ERC20 
+    // ERC20
     ImmutableERC20MinterBurnerPermit public erc20;
     address public minter;
     string name;
