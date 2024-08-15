@@ -7,9 +7,14 @@ The code in this repo allows for creation of transactions that deploy contracts 
 
 ## How to Run
 
-The process below allows the transactions to be recorded using Anvil, using one treasury private key, and then replayed back on a different chain using a different private key. The chain ids for the two chains must be identical.
+The process below allows the transactions to be recorded using Anvil, using one treasury private key, and then replayed back on a different "real" chain using a different treasury private key. The chain ids for the two chains must be identical.
 
-The contracts to be deployed on the chain. The deployment is checked. Then, the run time transactions are executed rapidly.
+At a high level the process is:
+* Determine what a "marker" transaction looks like. This is a special transaction inserted between deployment transactions and runtime transactions.
+* Create the "runtime" transactions that will be sent to a chain at high speed.
+* Deploy contracts to the real chain.
+* Run the "runtiem" transactions fast.
+
 
 Define constants:
 
