@@ -14,17 +14,25 @@ contract Globals is Script {
     string public path = "./temp/addresses-and-keys.txt";
 
     // Distributor of native token.
+    // Account only used during set-up
     address public root;
     uint256 public rootPKey;
 
     // Deployer of all contracts
+    // Account only used during set-up
     address public deployer;
     uint256 public deployerPKey;
 
     // Have one admin account for everything: In the real deployment these are multisigs, with different
     // multisigs used for different adminstration groups.
+    // Account only used during set-up
     address public admin;
     uint256 public adminPKey;
+
+    // Address from which all EOA value transfers are sent.
+    // Account only used during run time testing
+    address public fountain;
+    uint256 public fountainPKey;
 
     int256 public PASSPORT_GEM_NEW_PASSPORT = 0;
     int256 public PASSPORT_GEM_GAME = 0;
@@ -47,7 +55,7 @@ contract Globals is Script {
     // ***************************************************
     // Code below manages accounts
     // ***************************************************
-    uint256 public constant NUM_PLAYERS = 100; // Number of players with some value
+    uint256 public constant NUM_PLAYERS = 10; // Number of players with some value
     uint256 public currentPlayer;
     address[] players;
     uint256[] playersPKeys;

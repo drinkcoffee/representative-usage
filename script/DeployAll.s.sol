@@ -32,10 +32,6 @@ import {Fund} from "../src/hunters-on-chain/Fund.sol";
 import {GuildOfGuardiansClaimGame} from "../src/guild-of-guardians/GuildOfGuardiansClaimGame.sol";
 
 contract DeployAll is Applications {
-    function run() public virtual {
-        deployAll();
-    }
-
     function deployAll() public {
         // Have this different for each run.
         string memory runName = RUN_NAME;
@@ -92,7 +88,7 @@ contract DeployAll is Applications {
         vm.writeLine(path, "Root PKey");
         vm.writeLine(path, Strings.toHexString(rootPKey));
         vm.startBroadcast(_treasuryPKey);
-        payable(root).transfer(30 ether);
+        payable(root).transfer(31 ether);
         if (root.balance == 0) {
             console.logString("ERROR: Root has 0 native gas token");
             revert("Root has 0 native gas token");
@@ -128,6 +124,22 @@ contract DeployAll is Applications {
             revert("Admin has 0 native gas token");
         }
         vm.stopBroadcast();
+
+        (fountain, fountainPKey) = makeAddrAndKey(
+            string(abi.encodePacked(treasuryAddress, _runName, "fountain"))
+        );
+        vm.writeLine(path, "Fountain Address");
+        vm.writeLine(path, Strings.toHexString(fountain));
+        vm.writeLine(path, "Fountain PKey");
+        vm.writeLine(path, Strings.toHexString(fountainPKey));
+        vm.startBroadcast(rootPKey);
+        payable(fountain).transfer(2 ether);
+        if (fountain.balance == 0) {
+            console.logString("ERROR: Fountain has 0 native gas token");
+            revert("Fountain has 0 native gas token");
+        }
+        vm.stopBroadcast();
+
 
         (relayer, relayerPKey) = makeAddrAndKey(
             string(abi.encodePacked(treasuryAddress, _runName, "relayer"))
@@ -393,6 +405,19 @@ contract DeployAll is Applications {
         if (admin.balance == 0) {
             console.logString("ERROR: Admin has 0 native gas token");
             revert("Admin has 0 native gas token");
+        }
+
+        vm.readLine(path); // Discard line: Fountain Address
+        fountain = vm.parseAddress(vm.readLine(path));
+        vm.readLine(path); // Discard line: Fountain PKey
+        fountainPKey = vm.parseUint(vm.readLine(path));
+        console.logString("Loaded fountain as");
+        console.logAddress(fountain);
+        console.logString("Loaded fountainPKey as");
+        console.logUint(fountainPKey);
+        if (fountain.balance == 0) {
+            console.logString("ERROR: Fountain has 0 native gas token");
+            revert("Fountain has 0 native gas token");
         }
 
         vm.readLine(path); // Discard line: Relayer Address
