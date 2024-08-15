@@ -4,7 +4,7 @@ pragma solidity ^0.8;
 import {Script} from "forge-std/Script.sol";
 import {console} from "forge-std/Test.sol";
 
-import {RunBase} from "./RunBase.s.sol";
+import {Applications} from "./Applications.s.sol";
 
 // Open Zeppelin contracts
 import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
@@ -32,165 +32,127 @@ import {Fund} from "../src/hunters-on-chain/Fund.sol";
 // Guild of Guardians
 import {GuildOfGuardiansClaimGame} from "../src/guild-of-guardians/GuildOfGuardiansClaimGame.sol";
 
-contract RunCustom is RunBase {
-    uint256 _treasuryPKey = vm.envUint("ACCOUNT_PVT_KEY");
-
+contract RunCustom is Applications {
     function run(string memory _executionType) public {
         require(bytes(_executionType).length != 0, "Specify execution type as a parameter");
 
         loadEnvironment();
-        treasuryPKey = _treasuryPKey;
-        treasuryAddress = Strings.toHexString(
-            uint160(vm.addr(_treasuryPKey)),
-            20
-        );
-        path = string(
-            abi.encodePacked(
-                "./temp/addresses-and-keys-",
-                treasuryAddress,
-                "-",
-                RUN_NAME,
-                ".txt"
-            )
-        );
-        loadAddressNonces();
-        loadPassportPlayerMagicFromFile();
 
         if (Strings.equal(_executionType, "check-treasury")) {
             console.logString("Checking Treasury Account");
-            address treasury = vm.addr(_treasuryPKey);
-            console.log("Treasury (%s) balance: %i", treasuryAddress, treasury.balance);
+            address treasury = vm.addr(TREASURY_PKEY);
+            console.log("Treasury (%s) balance: %i", treasury, treasury.balance);
         }
         else if (Strings.equal(_executionType, "deploy")) {
             console.logString("Deploying contracts");
             deployAll();
+            insertMarkerTransaction();
         } 
         else if (Strings.equal(_executionType, "check-deploy")) {
-            _loadAddresses();
             console.logString("Checking contracts deploy and accounts funded for execution");
             console.log("Relayer (%s) balance: %i, nonce: %i", relayer, relayer.balance, vm.getNonce(relayer));
-        } 
-        else if (Strings.equal(_executionType, "execute")) {
-            console.logString("Executing transactions");
-            executeAll();
         } 
         else if (Strings.equal(_executionType, "deploy-execute")) {
             deployAll();
             insertMarkerTransaction();
             executeAll();
         }
-        else if (Strings.equal(_executionType, "fund-admin")) {
-            // TODO remove this as there should be no scenario in which this needs to be done.
-            console.logString("Funding Admin");
-            vm.broadcast(treasuryPKey);
-            payable(admin).transfer(1000 ether);
-
-        }
         else {
             console.log("Unknown execution type: %s", _executionType);
         }
-
-        saveAddressNonces();
-        savePassportPlayerMagicToFile();
     }
 
 
-    function _loadAddresses() internal {
-        // Have this different for each run.
-        string memory runName = RUN_NAME;
-        console.logString("Start *********************************");
-        console.logString(
-            string(
-                abi.encodePacked(
-                    "Loading deployment address information from: ",
+    function deployAll() private {
+        if (vm.exists(path)) {
+            vm.removeFile(path);
+        }
+        vm.writeLine(path, ("Execution Start *********************************"));
+        console.logString(string(abi.encodePacked(
+                    "Deployment address Information logged to: ",
                     path
                 )
             )
         );
 
-        vm.readLine(path); // Discard line: Execution Start *********************************
-        vm.readLine(path); // Discard line: Run Name
-        vm.readLine(path); // Discard line: the run name
+        setupGlobalAccounts();
+        setupPassportAccounts();
+        setupApplicationAccounts();
 
-        loadAccounts(runName);
-        loadUserEOAs(runName);
+        distributeNativeTokenToGamePlayers();
 
-        loadCreate3Deployer();
-        loadPassportWalletContracts();
-        loadSeaport();
-        loadGemGame();
-        // Applications don't directly interact with Royalty Allowlist at run time, so nothing to load.
-        loadHuntersOnChain();
-        loadGuildOfGuardians();
+        installCreate3Deployer();
+        installPassportWallet();
+        installSeaport();
+        installGemGame();
+        installRoyaltyAllowlist(); // Must be installed after Passport.
+        installHuntersOnChain();
+        installGuildOfGuardians();
+
+        vm.closeFile(path);
     }
 
 
     function insertMarkerTransaction() private {
         console.logString("Insert into sendRawTransaction log file an easily findable transaction");
         address zero = address(0);
-        vm.broadcast(treasuryPKey);
+        vm.broadcast(TREASURY_PKEY);
         payable(zero).transfer(0 ether);
     }
 
 
     function executeAll() internal {
-        if (!vm.isFile(path)) {
-            console.logString("ERROR: No addresses-and-keys file found");
-            return;
-        }
-        _loadAddresses();
+        for (uint256 j = 0; j < 100; j++) {
+            for (int i = 0; i < PASSPORT_GEM_NEW_PASSPORT; i++) {
+                callGemGameFromUsersPassport(true);
+            }
 
-        for (int i = 0; i < PASSPORT_GEM_NEW_PASSPORT; i++) {
-            callGemGameFromUsersPassport(true);
-        }
+            for (int i = 0; i < PASSPORT_GEM_GAME; i++) {
+                callGemGameFromUsersPassport(false);
+            }
 
-        for (int i = 0; i < PASSPORT_GEM_GAME; i++) {
-            callGemGameFromUsersPassport(false);
-        }
+            for (int i = 0; i < PASSPORT_HUNTERS_ON_CHAIN_CLAIM_GAME; i++) {
+                callHuntersOnChainClaimGamePassport(false);
+            }
 
-        for (int i = 0; i < PASSPORT_HUNTERS_ON_CHAIN_CLAIM_GAME; i++) {
-            callHuntersOnChainClaimGamePassport(false);
-        }
+            for (int i = 0; i < PASSPORT_HUNTERS_ON_CHAIN_RECIPE; i++) {
+                callHuntersOnChainRecipeOpenChestPassport(false);
+            }
 
-        for (int i = 0; i < PASSPORT_HUNTERS_ON_CHAIN_RECIPE; i++) {
-            callHuntersOnChainRecipeOpenChestPassport(false);
-        }
+            for (int i = 0; i < PASSPORT_HUNTERS_ON_CHAIN_BITGEM; i++) {
+                callHuntersOnChainBGemClaimPassport(false);
+            }
 
-        for (int i = 0; i < PASSPORT_HUNTERS_ON_CHAIN_BITGEM; i++) {
-            callHuntersOnChainBGemClaimPassport(false);
-        }
+            for (int i = 0; i < PASSPORT_GUILD_OF_GUARDIANS_CLAIM; i++) {
+                callGuildOfGuardiansClaimGamePassport(false);
+            }
+            // skipping PASSPORT_SPACETREK_CLAIM , PASSPORT_SPACENATION_COIN
 
-        for (int i = 0; i < PASSPORT_GUILD_OF_GUARDIANS_CLAIM; i++) {
-            callGuildOfGuardiansClaimGamePassport(false);
-        }
-        // skipping PASSPORT_SPACETREK_CLAIM , PASSPORT_SPACENATION_COIN
+            for (int i = 0; i < EOA_HUNTERS_ON_CHAIN_BGEM_CLAIM; i++) {
+                callHuntersOnChainBGemClaimEOA();
+            }
 
-        for (int i = 0; i < EOA_HUNTERS_ON_CHAIN_BGEM_CLAIM; i++) {
-            callHuntersOnChainBGemClaimEOA();
-        }
+            for (int i = 0; i < EOA_HUNTERS_ON_CHAIN_RELAYER_MINT; i++) {
+                callHuntersOnChainBGemMintERC20(false);
+            }
 
-        for (int i = 0; i < EOA_HUNTERS_ON_CHAIN_RELAYER_MINT; i++) {
-            callHuntersOnChainBGemMintERC20(false);
-        }
+            for (int i = 0; i < EOA_HUNTERS_ON_CHAIN_RELAYER_SHARD_MINT; i++) {
+                callShardsERC1155SafeMintBatch(false);
+            }
 
-        for (int i = 0; i < EOA_HUNTERS_ON_CHAIN_RELAYER_SHARD_MINT; i++) {
-            callShardsERC1155SafeMintBatch(false);
-        }
+            for (int i = 0; i < EOA_GEM_GAME; i++) {
+                callGemGameFromUserEOA();
+            }
 
-        for (int i = 0; i < EOA_GEM_GAME; i++) {
-            callGemGameFromUserEOA();
-        }
+            for (int i = 0; i < EOA_VALUE_TRANSFER; i++) {
+                callValueTransferEOAtoEOA();
+            }
 
-        for (int i = 0; i < EOA_VALUE_TRANSFER; i++) {
-            callValueTransferEOAtoEOA();
-        }
+            // skipping EOA_BABY_SHARK_UNIVERSE_PROXY, EOA_BABY_SHARK_UNIVERSE, EOA_BLACKPASS
 
-        // skipping EOA_BABY_SHARK_UNIVERSE_PROXY, EOA_BABY_SHARK_UNIVERSE, EOA_BLACKPASS
-
-        for (int i = 0; i < HUNTERS_ON_CHAIN; i++) {
-            callHuntersOnChainFund();
+            for (int i = 0; i < HUNTERS_ON_CHAIN; i++) {
+                callHuntersOnChainFund();
+            }
         }
     }
-
-
 }
