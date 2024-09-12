@@ -5,6 +5,7 @@ import "openzeppelin-contracts-5.0.2/access/AccessControl.sol";
 import {IGuessingGame} from "./IGuessingGame.sol";
 import {ConstantsLib} from "./Constants.sol";
 import {GameState, PlayerState, System, DayInfo, Game, GameInfo, Player} from "./Structs.sol";
+import {Math} from "./Math.sol";
 
 
 contract GuessingGameBase is IGuessingGame, AccessControl {
